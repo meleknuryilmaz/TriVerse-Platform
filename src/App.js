@@ -1,25 +1,978 @@
-import logo from './logo.svg';
-import './App.css';
+// ============================================================
+//  TriVerse: Onshore Integrated Dashboard (PoC)
+//  Stack : Create React App + Tailwind CSS + Recharts
+//  Data  : synthetic_scada_logs.json  (static / self-contained)
+//  Author: Antigravity — 2026
+// ============================================================
+//
+//  index.css İÇİNDE OLMASI GEREKEN (yoksa ekle):
+//  @tailwind base;
+//  @tailwind components;
+//  @tailwind utilities;
+//
+// ============================================================
 
-function App() {
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+
+// ─────────────────────────────────────────────────────────────
+//  STATIC SYNTHETIC SCADA DATA  (synthetic_scada_logs.json)
+// ─────────────────────────────────────────────────────────────
+const SYNTHETIC_SCADA_LOGS = [
+  { time: '00:00', actual: 42.3, lstm: 41.8, windSpeed: 7.2 },
+  { time: '01:00', actual: 38.7, lstm: 39.2, windSpeed: 6.8 },
+  { time: '02:00', actual: 45.1, lstm: 44.5, windSpeed: 8.1 },
+  { time: '03:00', actual: 51.2, lstm: 50.8, windSpeed: 9.3 },
+  { time: '04:00', actual: 48.9, lstm: 49.4, windSpeed: 8.7 },
+  { time: '05:00', actual: 53.4, lstm: 52.9, windSpeed: 9.8 },
+  { time: '06:00', actual: 61.2, lstm: 60.7, windSpeed: 11.2 },
+  { time: '07:00', actual: 72.8, lstm: 73.5, windSpeed: 12.4 },
+  { time: '08:00', actual: 85.3, lstm: 84.8, windSpeed: 13.1 },
+  { time: '09:00', actual: 91.7, lstm: 92.3, windSpeed: 14.2 },
+  { time: '10:00', actual: 88.4, lstm: 87.9, windSpeed: 13.8 },
+  { time: '11:00', actual: 95.6, lstm: 96.1, windSpeed: 15.3 },
+  { time: '12:00', actual: 102.3, lstm: 101.7, windSpeed: 16.1 },
+  { time: '13:00', actual: 98.7, lstm: 99.2, windSpeed: 15.7 },
+  { time: '14:00', actual: 94.2, lstm: 93.8, windSpeed: 14.9 },
+  { time: '15:00', actual: 87.6, lstm: 88.1, windSpeed: 14.1 },
+  { time: '16:00', actual: 79.3, lstm: 78.8, windSpeed: 13.2 },
+  { time: '17:00', actual: 71.8, lstm: 72.4, windSpeed: 12.1 },
+  { time: '18:00', actual: 64.5, lstm: 63.9, windSpeed: 11.4 },
+  { time: '19:00', actual: 58.2, lstm: 57.7, windSpeed: 10.3 },
+  { time: '20:00', actual: 52.4, lstm: 53.1, windSpeed: 9.6  },
+  { time: '21:00', actual: 47.9, lstm: 47.3, windSpeed: 8.9  },
+  { time: '22:00', actual: 44.1, lstm: 44.7, windSpeed: 8.2  },
+  { time: '23:00', actual: 41.6, lstm: 42.1, windSpeed: 7.8  },
+];
+
+const CARBON_TREND = [
+  { month: 'Oca', kapsam1: 48, kapsam2: 12 },
+  { month: 'Şub', kapsam1: 44, kapsam2: 10 },
+  { month: 'Mar', kapsam1: 40, kapsam2: 8  },
+  { month: 'Nis', kapsam1: 36, kapsam2: 5  },
+  { month: 'May', kapsam1: 32, kapsam2: 2  },
+  { month: 'Haz', kapsam1: 27, kapsam2: 0  },
+];
+
+// ─────────────────────────────────────────────────────────────
+//  RBAC CONFIG
+// ─────────────────────────────────────────────────────────────
+const ROLES = {
+  SAHA    : 'Saha Mühendisi',
+  FINANS  : 'Finans Direktörü',
+  YONETICI: 'Üst Düzey Yönetici',
+};
+
+const ROLE_PERMS = {
+  [ROLES.SAHA]    : { telemetri: true,  tsrs: false, eko: true  },
+  [ROLES.FINANS]  : { telemetri: false, tsrs: true,  eko: false },
+  [ROLES.YONETICI]: { telemetri: true,  tsrs: true,  eko: true  },
+};
+
+const TABS = [
+  { key: 'telemetri', label: 'Anlık Telemetri',     icon: '📡', perm: 'telemetri' },
+  { key: 'tsrs',      label: 'TSRS & Karbon Raporu', icon: '📊', perm: 'tsrs'      },
+  { key: 'eko',       label: 'Ekolojik Koruma',      icon: '🌿', perm: 'eko'       },
+];
+
+// ─────────────────────────────────────────────────────────────
+//  SHARED MICRO-COMPONENTS
+// ─────────────────────────────────────────────────────────────
+
+/** Animated live badge */
+function PulseBadge({ children, variant = 'cyan' }) {
+  const styles = {
+    cyan  : 'bg-cyan-900/40 border-cyan-600/40 text-cyan-300',
+    green : 'bg-green-900/40 border-green-600/40 text-green-300',
+    yellow: 'bg-yellow-900/40 border-yellow-600/40 text-yellow-300',
+    red   : 'bg-red-900/40 border-red-600/40 text-red-300',
+    purple: 'bg-purple-900/40 border-purple-600/40 text-purple-300',
+    gray  : 'bg-gray-800/60 border-gray-600/40 text-gray-400',
+  };
+  const dotStyles = {
+    cyan  : 'bg-cyan-400',
+    green : 'bg-green-400',
+    yellow: 'bg-yellow-400',
+    red   : 'bg-red-400',
+    purple: 'bg-purple-400',
+    gray  : 'bg-gray-500',
+  };
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${styles[variant]}`}>
+      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${dotStyles[variant]}`} />
+      {children}
+    </span>
+  );
+}
+
+/** KPI metric card */
+function KPICard({ label, value, unit, trend, icon, accentClass = 'text-cyan-400' }) {
+  const isUp = trend > 0;
+  return (
+    <div className="bg-gray-900/70 border border-gray-700/50 rounded-xl p-4 flex flex-col gap-1 hover:border-gray-600/60 transition-colors">
+      <div className="flex items-center justify-between">
+        <span className="text-gray-500 text-xs">{label}</span>
+        <span className="text-lg">{icon}</span>
+      </div>
+      <div className={`text-2xl font-black ${accentClass}`}>
+        {value}
+        <span className="text-sm font-normal text-gray-500 ml-1">{unit}</span>
+      </div>
+      {trend !== undefined && (
+        <span className={`text-xs ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+          {isUp ? '▲' : '▼'} {Math.abs(trend)}% son 24s
+        </span>
+      )}
     </div>
   );
 }
 
-export default App;
+/** Section wrapper card */
+function WidgetCard({ children, title, subtitle, badge, borderClass = 'border-gray-700/50', className = '' }) {
+  return (
+    <div className={`bg-gray-900/80 border ${borderClass} rounded-2xl p-5 backdrop-blur-sm flex flex-col h-full ${className}`}>
+      {(title || badge) && (
+        <div className="flex items-start justify-between mb-4 flex-shrink-0">
+          <div>
+            {title && <h3 className="text-white font-bold text-sm">{title}</h3>}
+            {subtitle && <p className="text-gray-500 text-xs mt-0.5">{subtitle}</p>}
+          </div>
+          {badge}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/** Custom Recharts tooltip */
+function ChartTooltip({ active, payload, label, unit = 'MW' }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 shadow-2xl text-xs">
+      <p className="text-cyan-400 font-semibold mb-1">{label}</p>
+      {payload.map((e, i) => (
+        <p key={i} style={{ color: e.color }}>
+          {e.name}: <b>{typeof e.value === 'number' ? e.value.toFixed(1) : e.value} {unit}</b>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  WIDGET 1 — POWER FORECAST CHART (LSTM)
+// ─────────────────────────────────────────────────────────────
+function PowerForecastWidget() {
+  return (
+    <WidgetCard
+      title="⚡ Güç Üretim Tahmini (LSTM)"
+      subtitle="Gerçek zamanlı SCADA telemetri + AI tahmini"
+      borderClass="border-cyan-500/20"
+      badge={
+        <div className="flex gap-1.5 flex-wrap justify-end">
+          <PulseBadge variant="cyan">CANLI</PulseBadge>
+          <PulseBadge variant="purple">LSTM v2.4</PulseBadge>
+        </div>
+      }
+    >
+      {/* Chart */}
+      <div style={{ height: 220 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={SYNTHETIC_SCADA_LOGS} margin={{ top: 5, right: 8, left: -12, bottom: 0 }}>
+            <defs>
+              <linearGradient id="gActual" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#06b6d4" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}    />
+              </linearGradient>
+              <linearGradient id="gLSTM" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#a78bfa" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#a78bfa" stopOpacity={0}    />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.5} />
+            <XAxis dataKey="time" stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} interval={3} />
+            <YAxis stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} domain={[0, 120]} unit=" MW" />
+            <Tooltip content={<ChartTooltip />} />
+            <Legend
+              wrapperStyle={{ paddingTop: 8 }}
+              formatter={(v) => <span style={{ color: '#9ca3af', fontSize: 11 }}>{v}</span>}
+            />
+            <Area
+              type="monotone"
+              dataKey="actual"
+              name="Gerçek Üretim (MW)"
+              stroke="#06b6d4"
+              strokeWidth={2}
+              fill="url(#gActual)"
+              dot={false}
+              activeDot={{ r: 4, fill: '#06b6d4' }}
+            />
+            <Area
+              type="monotone"
+              dataKey="lstm"
+              name="1s Sonraki LSTM Tahmini"
+              stroke="#a78bfa"
+              strokeWidth={2}
+              strokeDasharray="5 3"
+              fill="url(#gLSTM)"
+              dot={false}
+              activeDot={{ r: 4, fill: '#a78bfa' }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Bottom KPI strip */}
+      <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-700/40">
+        {[
+          { label: 'Peak MW', value: '102.3', color: 'text-cyan-400' },
+          { label: 'Model Doğruluğu', value: '97.2%', color: 'text-green-400' },
+          { label: 'MAE', value: '±1.8 MW', color: 'text-purple-400' },
+        ].map((m) => (
+          <div key={m.label} className="text-center">
+            <div className={`font-bold text-lg ${m.color}`}>{m.value}</div>
+            <div className="text-gray-500 text-xs">{m.label}</div>
+          </div>
+        ))}
+      </div>
+    </WidgetCard>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  WIDGET 2 — YAW CONTROL / WAKE EFFECT (Multi-Agent DRL)
+// ─────────────────────────────────────────────────────────────
+const INITIAL_TURBINES = [
+  { id: 'WTG-01', yaw: 4.3, power: 3.2, status: 'optimal'    },
+  { id: 'WTG-02', yaw: 2.1, power: 2.9, status: 'optimizing' },
+  { id: 'WTG-03', yaw: 5.7, power: 3.4, status: 'optimal'    },
+  { id: 'WTG-04', yaw: 0.8, power: 2.7, status: 'wake'       },
+  { id: 'WTG-05', yaw: 3.9, power: 3.1, status: 'optimal'    },
+  { id: 'WTG-06', yaw: 6.2, power: 3.5, status: 'optimal'    },
+];
+
+function YawControlWidget() {
+  const [drlActive, setDrlActive] = useState(true);
+  const [yawAngle, setYawAngle]   = useState(4.3);
+  const [farmYield, setFarmYield] = useState(16.3);
+  const [turbines, setTurbines]   = useState(INITIAL_TURBINES);
+
+  useEffect(() => {
+    if (!drlActive) return;
+    const id = setInterval(() => {
+      setYawAngle(p  => +(p + (Math.random() - 0.5) * 0.25).toFixed(1));
+      setFarmYield(p => +(p + (Math.random() - 0.5) * 0.15).toFixed(1));
+      setTurbines(prev =>
+        prev.map(t => ({
+          ...t,
+          yaw  : +(t.yaw   + (Math.random() - 0.5) * 0.3).toFixed(1),
+          power: +(t.power + (Math.random() - 0.5) * 0.08).toFixed(2),
+        }))
+      );
+    }, 2000);
+    return () => clearInterval(id);
+  }, [drlActive]);
+
+  const statusStyle = {
+    optimal   : { bg: 'bg-green-900/30', border: 'border-green-700/40', text: 'text-green-400' },
+    optimizing: { bg: 'bg-yellow-900/30', border: 'border-yellow-700/40', text: 'text-yellow-400' },
+    wake      : { bg: 'bg-red-900/30', border: 'border-red-700/40', text: 'text-red-400' },
+  };
+
+  return (
+    <WidgetCard
+      title="🌀 Yalpa / Yaw Kontrolü & Kuyruk Etkisi"
+      subtitle="Multi-Agent Deep Reinforcement Learning (DRL)"
+      borderClass="border-purple-500/20"
+      badge={
+        <button
+          onClick={() => setDrlActive(v => !v)}
+          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+            drlActive
+              ? 'bg-purple-700 hover:bg-purple-600 text-white'
+              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+          }`}
+        >
+          {drlActive ? '⏸ Durdur' : '▶ Başlat'}
+        </button>
+      }
+    >
+      {/* DRL Status Banner */}
+      <div
+        className={`relative rounded-xl p-4 mb-4 overflow-hidden transition-all ${
+          drlActive
+            ? 'bg-purple-950/50 border border-purple-500/40'
+            : 'bg-gray-800/40 border border-gray-700/40'
+        }`}
+      >
+        {drlActive && (
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-800/10 to-cyan-800/10 animate-pulse pointer-events-none" />
+        )}
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className={`w-2 h-2 rounded-full ${drlActive ? 'bg-purple-400 animate-pulse' : 'bg-gray-600'}`}
+            />
+            <span className={`text-xs font-bold tracking-wider ${drlActive ? 'text-purple-300' : 'text-gray-600'}`}>
+              MULTI-AGENT DRL {drlActive ? 'AKTİF' : 'PASİF'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-black/20 rounded-lg p-3 text-center">
+              <div className="text-gray-400 text-xs mb-1">Yalpa Açısı</div>
+              <div className={`text-3xl font-black ${drlActive ? 'text-purple-300' : 'text-gray-600'}`}>
+                +{yawAngle}°
+              </div>
+              <div className="text-purple-600 text-xs mt-0.5">Optimize Edildi</div>
+            </div>
+            <div className="bg-black/20 rounded-lg p-3 text-center">
+              <div className="text-gray-400 text-xs mb-1">Çiftlik Verimi</div>
+              <div className={`text-3xl font-black ${drlActive ? 'text-green-400' : 'text-gray-600'}`}>
+                +%{farmYield}
+              </div>
+              <div className="text-green-700 text-xs mt-0.5">Kuyruk Etkisi ↓</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Turbine Grid */}
+      <div className="flex-1">
+        <p className="text-gray-500 text-xs uppercase tracking-widest font-semibold mb-2">Türbin Durumu</p>
+        <div className="grid grid-cols-3 gap-2">
+          {turbines.map(t => {
+            const s = statusStyle[t.status];
+            return (
+              <div key={t.id} className={`rounded-lg p-2 border text-center transition-all ${s.bg} ${s.border}`}>
+                <div className="text-gray-400 text-xs">{t.id}</div>
+                <div className={`text-sm font-bold ${s.text}`}>{t.power} MW</div>
+                <div className="text-gray-600 text-xs">{t.yaw}°</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-700/40">
+        <PulseBadge variant="purple">PPO Algorithm v3</PulseBadge>
+        <PulseBadge variant="green">Wake: FLORIS</PulseBadge>
+      </div>
+    </WidgetCard>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  WIDGET 3 — ECO MONITOR & DRONE / YOLOV8
+// ─────────────────────────────────────────────────────────────
+function EcoMonitorWidget() {
+  const [phase, setPhase]       = useState('idle'); // idle | scanning | detected
+  const [fileName, setFileName] = useState('');
+  const fileRef                 = useRef(null);
+
+  const runAnalysis = (name) => {
+    setFileName(name);
+    setPhase('scanning');
+    setTimeout(() => setPhase('detected'), 2200);
+  };
+
+  const handleFile = (e) => {
+    const f = e.target.files[0];
+    if (f) runAnalysis(f.name);
+  };
+
+  return (
+    <WidgetCard
+      title="🦅 Ekolojik Takip & Drone Denetimi"
+      subtitle="YOLOv8 Görüntü Analizi + Smart Curtailment"
+      borderClass="border-green-500/20"
+      badge={<PulseBadge variant="green">AI AKTİF</PulseBadge>}
+    >
+      {/* Smart Curtailment */}
+      <div className="bg-green-950/40 border border-green-700/30 rounded-xl p-3 mb-4 flex-shrink-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span>🐦</span>
+          <span className="text-green-300 text-xs font-bold">Smart Curtailment Aktif</span>
+        </div>
+        <p className="text-gray-300 text-xs">
+          Hız <span className="text-yellow-300 font-bold">≤ 2 RPM</span> ile sınırlandırıldı.
+        </p>
+        <p className="text-green-400 text-xs font-semibold mt-0.5">
+          Kuş Ölümleri <span className="text-white font-black">%85 Azaltıldı</span> 🌿
+        </p>
+        <div className="mt-2 bg-gray-800 rounded-full h-1.5">
+          <div
+            className="bg-gradient-to-r from-green-500 to-emerald-400 h-1.5 rounded-full transition-all"
+            style={{ width: '85%' }}
+          />
+        </div>
+      </div>
+
+      {/* Upload area */}
+      <p className="text-gray-500 text-xs uppercase tracking-widest font-semibold mb-2 flex-shrink-0">
+        Kanat Çatlak Analizi (YOLOv8)
+      </p>
+      <div
+        className="border-2 border-dashed border-gray-700 hover:border-cyan-600/60 rounded-xl p-4 text-center cursor-pointer mb-3 flex-shrink-0 transition-colors"
+        onClick={() => fileRef.current?.click()}
+      >
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+        <div className="text-3xl mb-1">🖼️</div>
+        <p className="text-xs text-gray-500">
+          {fileName
+            ? <span className="text-cyan-400 font-semibold">{fileName}</span>
+            : 'Görüntü sürükle-bırak veya tıkla'}
+        </p>
+      </div>
+
+      <button
+        onClick={() => runAnalysis('catlak.jpg')}
+        disabled={phase === 'scanning'}
+        className="w-full py-2 rounded-xl bg-gradient-to-r from-cyan-700 to-cyan-600 hover:from-cyan-600 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all mb-3 flex-shrink-0"
+      >
+        🔍 Görsel Yükle (catlak.jpg) — Simüle Et
+      </button>
+
+      {/* States */}
+      {phase === 'scanning' && (
+        <div className="bg-yellow-950/40 border border-yellow-700/40 rounded-xl p-3 flex items-center gap-2.5">
+          <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <span className="text-yellow-300 text-xs font-semibold">YOLOv8 analiz ediyor…</span>
+        </div>
+      )}
+
+      {phase === 'detected' && (
+        <div className="bg-red-950/50 border-2 border-red-600/60 rounded-xl p-4 animate-pulse">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xl">⚠️</span>
+            <span className="text-red-300 text-xs font-black tracking-wide">KRİTİK UYARI!</span>
+          </div>
+          <p className="text-red-200 text-xs font-semibold mb-1">
+            YOLOv8: <span className="text-white font-black text-sm">%94</span> Kanat Çatlağı Tespit Edildi!
+          </p>
+          <p className="text-orange-300 text-xs">🔧 Kestirimci Bakım Tetiklendi.</p>
+          <p className="text-gray-500 text-xs mt-1">Konum: WTG-04 / Kanat-B / Sektör 3</p>
+        </div>
+      )}
+    </WidgetCard>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  WIDGET 4 — TSRS / FINANCIAL ROI ENGINE
+// ─────────────────────────────────────────────────────────────
+function FinancialROIWidget() {
+  const [showReport, setShowReport] = useState(false);
+
+  return (
+    <WidgetCard
+      title="💰 TSRS & Finansal ROI Motoru"
+      subtitle="IFRS S2 Uyumlu — KGK Onaylı Raporlama"
+      borderClass="border-yellow-500/20"
+      badge={<PulseBadge variant="yellow">IFRS S2</PulseBadge>}
+    >
+      {/* Scope 1 */}
+      <div className="bg-gray-800/50 border border-gray-700/40 rounded-xl p-3 mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-gray-400 text-xs uppercase font-semibold tracking-wider">KAPSAM 1</span>
+          <span className="text-gray-600 text-xs">Saha Lojistiği Yakıt</span>
+        </div>
+        <div className="flex items-end gap-2">
+          <span className="text-white font-black text-3xl">%25</span>
+          <span className="text-green-400 text-xs font-bold mb-0.5">↓ Tasarruf</span>
+        </div>
+        <div className="bg-gray-700 rounded-full h-1.5 mt-2">
+          <div className="bg-gradient-to-r from-yellow-500 to-orange-400 h-1.5 rounded-full" style={{ width: '25%' }} />
+        </div>
+        <p className="text-gray-600 text-xs mt-1">Baz yıla kıyasla yakıt tüketimi azaltması</p>
+      </div>
+
+      {/* Scope 2 */}
+      <div className="bg-emerald-950/40 border border-emerald-600/40 rounded-xl p-3 mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-emerald-400 text-xs uppercase font-bold tracking-wider">KAPSAM 2</span>
+          <span className="text-gray-600 text-xs">İç Tüketim Emisyonu</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-emerald-300 font-black text-2xl">SIFIRLANMIŞTIR</span>
+          <span className="text-xl">✅</span>
+        </div>
+        <p className="text-emerald-700 text-xs mt-0.5">%100 Yenilenebilir Kaynaklı İç Tüketim</p>
+      </div>
+
+      {/* YEKA ROI */}
+      <div className="bg-gradient-to-r from-green-950/60 to-emerald-950/60 border border-green-600/30 rounded-xl p-4 mb-3">
+        <p className="text-gray-500 text-xs uppercase font-semibold tracking-wider mb-1">YEKA ROI Kazanımı</p>
+        <p className="text-green-400 font-black text-4xl">+$12,400</p>
+        <p className="text-gray-600 text-xs mt-1">Bu Dönem Teşvik Geliri / MWh Bazlı</p>
+        <div className="flex gap-2 mt-2">
+          <span className="bg-green-900/50 border border-green-700/40 text-green-300 text-xs px-2 py-0.5 rounded-full">EPDK Onaylı</span>
+          <span className="bg-blue-900/50 border border-blue-700/40 text-blue-300 text-xs px-2 py-0.5 rounded-full">EÜAŞ Raporlandı</span>
+        </div>
+      </div>
+
+      {/* Carbon & Credit */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-2.5 text-center">
+          <div className="text-cyan-400 font-bold text-xl">847</div>
+          <div className="text-gray-500 text-xs">tCO₂e Tasarruf</div>
+        </div>
+        <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-2.5 text-center">
+          <div className="text-purple-400 font-bold text-xl">€24.6K</div>
+          <div className="text-gray-500 text-xs">Karbon Kredi</div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => setShowReport(v => !v)}
+        className="w-full py-2 rounded-xl bg-gradient-to-r from-yellow-700 to-orange-700 hover:from-yellow-600 hover:to-orange-600 text-white text-xs font-bold transition-all"
+      >
+        📄 {showReport ? 'Raporu Gizle' : 'IFRS S2 Raporu İndir (PDF Sim.)'}
+      </button>
+      {showReport && (
+        <div className="mt-2 bg-yellow-950/40 border border-yellow-700/30 rounded-lg p-2 text-xs text-yellow-300">
+          ✓ Hazırlandı:{' '}
+          <span className="font-semibold text-white">TSRS_IFRS_S2_Q2_2026.pdf</span>
+          <br />
+          <span className="text-gray-600">KGK standartlarına uygun dijital imzalı belge.</span>
+        </div>
+      )}
+    </WidgetCard>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  TOP BAR
+// ─────────────────────────────────────────────────────────────
+function TopBar({ role, setRole }) {
+  const initials = { [ROLES.SAHA]: 'SE', [ROLES.FINANS]: 'FD', [ROLES.YONETICI]: 'YY' };
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-gray-950/95 border-b border-gray-800/80 backdrop-blur-md h-14 flex items-center px-4 gap-4">
+      {/* Logo + Title */}
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-cyan-900/40">
+          TV
+        </div>
+        <div>
+          <h1 className="text-white font-bold text-sm leading-none">TriVerse</h1>
+          <p className="text-gray-500 text-xs leading-none mt-0.5">Onshore Integrated Dashboard (PoC)</p>
+        </div>
+      </div>
+
+      {/* Live KPIs */}
+      <div className="hidden lg:flex gap-2 ml-2">
+        <PulseBadge variant="green">RES: 102.3 MW</PulseBadge>
+        <PulseBadge variant="cyan">GES: 78.6 MW</PulseBadge>
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Status */}
+      <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500">
+        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+        Sistem Normal
+      </div>
+
+      {/* Timestamp */}
+      <div className="hidden md:block text-gray-600 text-xs">
+        {new Date().toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+      </div>
+
+      {/* Role selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-gray-500 text-xs hidden sm:block">Rol:</span>
+        <select
+          value={role}
+          onChange={e => setRole(e.target.value)}
+          className="bg-gray-800 border border-gray-700 text-gray-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+        >
+          {Object.values(ROLES).map(r => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Avatar */}
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-600 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 cursor-pointer">
+        {initials[role]}
+      </div>
+    </header>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  SIDEBAR
+// ─────────────────────────────────────────────────────────────
+function Sidebar({ activeTab, setActiveTab, perms }) {
+  return (
+    <aside className="fixed top-14 left-0 bottom-0 w-48 bg-gray-950/95 border-r border-gray-800/70 z-40 flex flex-col pt-4 pb-3">
+      <p className="text-gray-600 text-xs uppercase tracking-widest font-semibold px-5 mb-3">Modüller</p>
+
+      <nav className="flex-1 px-3 space-y-1">
+        {TABS.map(tab => {
+          const allowed  = perms[tab.perm];
+          const isActive = activeTab === tab.key;
+
+          return (
+            <button
+              key={tab.key}
+              onClick={() => allowed && setActiveTab(tab.key)}
+              title={!allowed ? 'Bu rol için erişim yok' : tab.label}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all text-left group ${
+                isActive
+                  ? 'bg-cyan-900/30 border border-cyan-600/40 text-cyan-300'
+                  : allowed
+                  ? 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                  : 'text-gray-700 cursor-not-allowed'
+              }`}
+            >
+              <span className={!allowed ? 'opacity-30' : ''}>{tab.icon}</span>
+              <span className="leading-tight">{tab.label}</span>
+              {!allowed && <span className="ml-auto text-gray-700 text-xs">🔒</span>}
+              {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Bottom info */}
+      <div className="px-3 space-y-2">
+        <div className="px-3 py-2 rounded-lg bg-gray-800/40 border border-gray-700/30">
+          <p className="text-gray-600 text-xs">Veri Kaynağı</p>
+          <p className="text-gray-300 text-xs font-semibold truncate">synthetic_scada_logs.json</p>
+          <p className="text-green-500 text-xs">● Statik / Offline</p>
+        </div>
+        <div className="px-3 py-2 rounded-lg bg-gray-800/40 border border-gray-700/30">
+          <p className="text-gray-600 text-xs">Çalışma Modu</p>
+          <p className="text-cyan-500 text-xs font-bold">Localhost / Intranet</p>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ACCESS DENIED PLACEHOLDER
+// ─────────────────────────────────────────────────────────────
+function AccessDenied({ message }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <span className="text-6xl mb-4">🔒</span>
+      <h3 className="text-gray-400 font-bold text-lg mb-2">Erişim Kısıtlı</h3>
+      <p className="text-gray-600 text-sm max-w-md">{message}</p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  TAB CONTENTS
+// ─────────────────────────────────────────────────────────────
+
+function TelemetriTab({ perms }) {
+  if (!perms.telemetri) {
+    return (
+      <AccessDenied message="Anlık Telemetri modülü Finans Direktörü rolünde görüntülenemez. Saha Mühendisi veya Üst Düzey Yönetici rolüne geçiniz." />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* KPI Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KPICard label="Toplam Üretim"     value="181.2" unit="MW"    trend={3.2}  icon="⚡" accentClass="text-cyan-400"   />
+        <KPICard label="Kapasite Faktörü"  value="83.4"  unit="%"     trend={1.8}  icon="📈" accentClass="text-green-400"  />
+        <KPICard label="Rüzgar Hızı (Ort)" value="14.2"  unit="m/s"   trend={-0.5} icon="💨" accentClass="text-yellow-400" />
+        <KPICard label="GHI İrradyans"     value="920"   unit="W/m²"  trend={2.1}  icon="☀️" accentClass="text-orange-400" />
+      </div>
+
+      {/* Main widget row */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 440 }}>
+        <PowerForecastWidget />
+        <YawControlWidget />
+      </div>
+
+      {/* Eco widget (hidden for Finans) */}
+      {perms.eko ? (
+        <EcoMonitorWidget />
+      ) : (
+        <div className="bg-gray-800/20 border border-gray-700/30 rounded-xl p-4 flex items-center gap-3">
+          <span className="text-2xl">🔒</span>
+          <div>
+            <p className="text-gray-500 text-sm font-semibold">Ekolojik Koruma Modülü</p>
+            <p className="text-gray-700 text-xs">
+              Bu bölüm Finans Direktörü rolünde gizlidir.{' '}
+              <span className="text-cyan-700">Saha Mühendisi</span> veya{' '}
+              <span className="text-cyan-700">Üst Düzey Yönetici</span> rolü gereklidir.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Financial locked card for Saha */}
+      {!perms.tsrs && (
+        <div className="bg-gray-800/20 border border-gray-700/30 rounded-xl p-4 flex items-center gap-3">
+          <span className="text-2xl">🔒</span>
+          <div>
+            <p className="text-gray-500 text-sm font-semibold">Finansal & TSRS Modülü</p>
+            <p className="text-gray-700 text-xs">
+              Bu bölüm mevcut rolünüzde gizlidir.{' '}
+              <span className="text-cyan-700">Finans Direktörü</span> veya{' '}
+              <span className="text-cyan-700">Üst Düzey Yönetici</span> rolü gereklidir.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TSRSTab({ perms }) {
+  if (!perms.tsrs) {
+    return (
+      <AccessDenied message="TSRS & Karbon Raporu modülü yalnızca Finans Direktörü ve Üst Düzey Yönetici rollerine açıktır." />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 500 }}>
+        {/* ROI Widget */}
+        <FinancialROIWidget />
+
+        {/* Carbon Trend Chart */}
+        <WidgetCard
+          title="📉 Karbon Ayak İzi Trendi (Kapsam 1 & 2)"
+          subtitle="KGK / TFRS S2 Uyumlu Raporlama"
+          borderClass="border-cyan-500/20"
+        >
+          <div style={{ height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={CARBON_TREND} margin={{ top: 5, right: 8, left: -12, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gK1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}    />
+                  </linearGradient>
+                  <linearGradient id="gK2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#10b981" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.4} />
+                <XAxis dataKey="month" stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} />
+                <YAxis stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} unit=" tCO₂" />
+                <Tooltip
+                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, fontSize: 11 }}
+                  labelStyle={{ color: '#06b6d4' }}
+                />
+                <Legend formatter={v => <span style={{ color: '#9ca3af', fontSize: 11 }}>{v}</span>} />
+                <Area type="monotone" dataKey="kapsam1" name="Kapsam 1 (tCO₂)" stroke="#f59e0b" strokeWidth={2} fill="url(#gK1)" dot={false} />
+                <Area type="monotone" dataKey="kapsam2" name="Kapsam 2 (tCO₂)" stroke="#10b981" strokeWidth={2} fill="url(#gK2)" dot={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="mt-4 bg-gray-800/40 border border-gray-700/30 rounded-xl p-3 space-y-1">
+            <p className="text-gray-500 text-xs">
+              📋 Standart:{' '}
+              <span className="text-white font-semibold">KGK — TFRS S2 (IFRS S2 eşdeğeri)</span>
+            </p>
+            <p className="text-gray-500 text-xs">
+              🏛️ Denetim:{' '}
+              <span className="text-white font-semibold">Kamu Gözetimi Kurumu (KGK)</span>
+            </p>
+            <p className="text-gray-500 text-xs">
+              📅 Dönem:{' '}
+              <span className="text-white font-semibold">Q2 2026 (01.04 – 30.06.2026)</span>
+            </p>
+          </div>
+
+          {/* Compliance badges */}
+          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-700/40">
+            <PulseBadge variant="yellow">KGK Onaylı</PulseBadge>
+            <PulseBadge variant="green">EPDK Uyumlu</PulseBadge>
+            <PulseBadge variant="cyan">CDP Raporlandı</PulseBadge>
+          </div>
+        </WidgetCard>
+      </div>
+    </div>
+  );
+}
+
+function EkoTab({ perms }) {
+  if (!perms.eko) {
+    return (
+      <AccessDenied message="Ekolojik Koruma modülü yalnızca Saha Mühendisi ve Üst Düzey Yönetici rollerine açıktır." />
+    );
+  }
+
+  const species = [
+    { name: 'Şahin (Falco tinnunculus)',  count: 3,  risk: 'Düşük',        badge: 'text-green-300 bg-green-900/40 border-green-700/30'  },
+    { name: 'Kızıl Şahin (Buteo buteo)', count: 1,  risk: 'Orta',         badge: 'text-yellow-300 bg-yellow-900/40 border-yellow-700/30' },
+    { name: 'Kerkenez',                   count: 7,  risk: 'Düşük',        badge: 'text-green-300 bg-green-900/40 border-green-700/30'   },
+    { name: 'Büyük Akbaba',              count: 0,  risk: 'Kritik İzlem', badge: 'text-red-300 bg-red-900/40 border-red-700/30'          },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 500 }}>
+      <EcoMonitorWidget />
+
+      <WidgetCard
+        title="🌍 Biyoçeşitlilik & Habitat İzleme"
+        subtitle="Termal Kamera + Drone Tarama — Sektör A-B-C"
+        borderClass="border-green-500/20"
+      >
+        <div className="space-y-2 flex-1">
+          {species.map(s => (
+            <div key={s.name} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-3 py-2.5">
+              <div>
+                <p className="text-white text-xs font-semibold">{s.name}</p>
+                <p className="text-gray-500 text-xs">Gözlem: {s.count} birey</p>
+              </div>
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${s.badge}`}>
+                {s.risk}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Drone scan log */}
+        <div className="mt-4 p-3 bg-blue-950/30 border border-blue-700/30 rounded-xl">
+          <p className="text-blue-300 text-xs font-semibold">
+            🛰️ Son Drone Tarama:{' '}
+            <span className="text-white">05.07.2026 — 14:23</span>
+          </p>
+          <p className="text-gray-600 text-xs mt-0.5">
+            Güzergah: Sektör A-B-C / 12 km² / 4K termal kamera / NDVI analiz
+          </p>
+        </div>
+
+        {/* Habitat health */}
+        <div className="mt-3 space-y-2">
+          {[
+            { label: 'Habitat Sağlık Skoru', val: 78, color: 'from-green-600 to-emerald-500', textColor: 'text-green-400' },
+            { label: 'Biyoçeşitlilik İndeksi (Shannon)', val: 63, color: 'from-blue-600 to-cyan-500', textColor: 'text-cyan-400' },
+          ].map(m => (
+            <div key={m.label}>
+              <div className="flex justify-between mb-1">
+                <span className="text-gray-500 text-xs">{m.label}</span>
+                <span className={`text-xs font-bold ${m.textColor}`}>{m.val}/100</span>
+              </div>
+              <div className="bg-gray-700 rounded-full h-1.5">
+                <div
+                  className={`bg-gradient-to-r ${m.color} h-1.5 rounded-full transition-all`}
+                  style={{ width: `${m.val}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-700/40">
+          <PulseBadge variant="green">IBA Uyumlu</PulseBadge>
+          <PulseBadge variant="cyan">EBRD PR6</PulseBadge>
+        </div>
+      </WidgetCard>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  FOOTER
+// ─────────────────────────────────────────────────────────────
+function Footer() {
+  return (
+    <footer className="mt-10 py-5 border-t border-gray-800/50">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+        <p className="text-gray-600 text-xs text-center md:text-left max-w-2xl leading-relaxed">
+          🔒{' '}
+          <span className="font-semibold text-gray-500">Siber Güvenlik Politikası:</span>{' '}
+          Bu PoC platformu, Enerjisa IT standartları gereğince dış dünyaya kapalı{' '}
+          <span className="text-cyan-800 font-semibold">Kurumsal Güvenli Ağ (Localhost / Intranet VPN)</span>{' '}
+          üzerinde çalışacak şekilde izole edilmiştir.
+        </p>
+        <div className="flex items-center gap-3 text-gray-700 text-xs flex-shrink-0">
+          <span>TriVerse v1.0.0-PoC</span>
+          <span className="text-gray-800">•</span>
+          <span>© 2026 Enerjisa Enerji</span>
+          <span className="text-gray-800">•</span>
+          <span>Antigravity Framework</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ROOT APP
+// ─────────────────────────────────────────────────────────────
+export default function App() {
+  const [role,      setRole     ] = useState(ROLES.YONETICI);
+  const [activeTab, setActiveTab] = useState('telemetri');
+
+  const perms = ROLE_PERMS[role];
+
+  // Auto-redirect if current tab is blocked for the newly selected role
+  useEffect(() => {
+    const firstAllowed = TABS.find(t => perms[t.perm]);
+    if (firstAllowed && !perms[TABS.find(t => t.key === activeTab)?.perm]) {
+      setActiveTab(firstAllowed.key);
+    }
+  }, [role]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const tabLabel = TABS.find(t => t.key === activeTab)?.label ?? '';
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'telemetri': return <TelemetriTab perms={perms} />;
+      case 'tsrs':      return <TSRSTab      perms={perms} />;
+      case 'eko':       return <EkoTab       perms={perms} />;
+      default:          return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white antialiased">
+      <TopBar role={role} setRole={setRole} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} perms={perms} />
+
+      {/* Main Content */}
+      <main className="ml-48 pt-14 min-h-screen">
+        <div className="p-6">
+          {/* Page header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-white">{tabLabel}</h2>
+              <p className="text-gray-500 text-sm mt-0.5">
+                {role} ·{' '}
+                {new Date().toLocaleDateString('tr-TR', {
+                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                })}
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap justify-end">
+              <PulseBadge variant="green">Sistem Operasyonel</PulseBadge>
+              <PulseBadge variant="gray">Offline / Localhost</PulseBadge>
+            </div>
+          </div>
+
+          {/* Dynamic Content */}
+          {renderContent()}
+
+          <Footer />
+        </div>
+      </main>
+    </div>
+  );
+}
