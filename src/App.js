@@ -23,6 +23,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import PlantMapWidget from './components/PlantMapWidget';
 
 // ─────────────────────────────────────────────────────────────
 //  STATIC SYNTHETIC SCADA DATA  (synthetic_scada_logs.json)
@@ -688,6 +689,9 @@ function TelemetriTab({ perms }) {
 
   return (
     <div className="space-y-4">
+      {/* Harita — Ana Kontrol Odası */}
+      <PlantMapWidget />
+
       {/* KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard label="Toplam Üretim"     value="181.2" unit="MW"    trend={3.2}  icon="⚡" accentClass="text-cyan-400"   />
