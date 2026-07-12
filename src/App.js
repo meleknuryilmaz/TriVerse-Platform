@@ -1,8 +1,11 @@
 // ============================================================
 //  TriVerse: Onshore Integrated Dashboard (PoC)
 //  Stack : Create React App + Tailwind CSS + Recharts
-//  Data  : synthetic_scada_logs.json  (static / self-contained)
+//  Veri  : Open-Meteo (Gerçek) + Hesaplanan + Simülasyon
 //  Author: Antigravity — 2026
+//
+//  ÖNEMLİ: Bu bir PoC'dur. Gerçek, hesaplanan ve
+//  simülasyon verileri arayüzde açıkça etiketlenmiştir.
 // ============================================================
 //
 //  index.css İÇİNDE OLMASI GEREKEN (yoksa ekle):
@@ -24,8 +27,9 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import ENERJISA_PLANTS from './data/enerjisaPlants';
-import PlantMapWidget from './components/PlantMapWidget';
+import PlantMapWidget    from './components/PlantMapWidget';
 import StormControlWidget from './components/StormControlWidget';
+import RecommendationPanel from './components/RecommendationPanel';
 import { ProfitLossChartWidget, HROpsWidget, MaintenanceCalendarWidget, CorrosionMapWidget, OffshoreROIWidget, BiodiversityScoreWidget } from './components/DashboardWidgets';
 import {
   fetchCurrentWeather,
@@ -182,14 +186,16 @@ function ChartTooltip({ active, payload, label, unit = 'MW' }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  WIDGET 1 — POWER FORECAST CHART (LSTM + Gerçek Saatlik Tahmin)
+//  WIDGET 1 — POWER FORECAST CHART
+//  NOT: Bu widget gerçek SCADA değil, Open-Meteo rüzgar
+//  verisinden hesaplanan tahmini üretimi göstermektedir.
 // ─────────────────────────────────────────────────────────────
 function PowerForecastWidget() {
   const [scadaData,   setScadaData]   = useState(SYNTHETIC_SCADA_LOGS);
   const [dataSource,  setDataSource]  = useState('synthetic'); // 'synthetic' | 'live'
   const [loadingData, setLoadingData] = useState(true);
 
-  // Gerçek saatlik rüzgar tahmini (Open-Meteo)
+  // Gerçek saatlik rüzgar tahmini (Open-Meteo) → Power Curve ile üretim tahmini
   useEffect(() => {
     fetchHourlyForecast(WEATHER_COORDS.res)
       .then(hourly => {
@@ -211,11 +217,11 @@ function PowerForecastWidget() {
 
   return (
     <WidgetCard
-      title="⚡ Güç Üretim Tahmini (LSTM)"
+      title="⚡ Açık Veri Tabanlı Üretim Tahmini"
       subtitle={
         dataSource === 'live'
-          ? 'Open-Meteo gerçek rüzgar verisi → Kübik güç yasası + LSTM'
-          : 'Gerçek zamanlı SCADA telemetri + AI tahmini'
+          ? 'Open-Meteo gerçek rüzgar verisi → IEC 61400-12 referans güç eğrisi'
+          : 'Referans senaryo verisi — API bağlantısı bekleniyor'
       }
       borderClass="border-cyan-500/20"
       badge={
@@ -223,7 +229,7 @@ function PowerForecastWidget() {
           {dataSource === 'live' ? (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-green-900/40 border-green-600/40 text-green-300">
               <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-green-400" />
-              CANLI VERİ
+              Open-Meteo Canlı
             </span>
           ) : loadingData ? (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-gray-800/60 border-gray-600/40 text-gray-400">
@@ -231,12 +237,27 @@ function PowerForecastWidget() {
               Yükleniyor
             </span>
           ) : (
-            <PulseBadge variant="cyan">CANLI</PulseBadge>
+            <PulseBadge variant="cyan">Senaryo</PulseBadge>
           )}
-          <PulseBadge variant="purple">LSTM v2.4</PulseBadge>
+          {/* Power curve tahmini — gerçek model değil */}
+          <span style={{
+            fontSize: 9, fontWeight: 700, color: '#60a5fa',
+            background: '#0c1a2e', padding: '2px 6px',
+            borderRadius: 4, border: '1px solid #1e3a5f',
+          }}>Power Curve Tahmini</span>
         </div>
       }
     >
+      {/* Uyarı notu */}
+      <div style={{
+        fontSize: 9, color: '#4b5563', marginBottom: 8,
+        background: '#111827', padding: '4px 8px', borderRadius: 6,
+        border: '1px solid #1f2937',
+      }}>
+        ⚠ Bu grafik gerçek SCADA verisi değildir.
+        Meteorolojik veriden hesaplanan tahmini üretimi göstermektedir.
+      </div>
+
       {/* Chart */}
       <div style={{ height: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -262,7 +283,7 @@ function PowerForecastWidget() {
             <Area
               type="monotone"
               dataKey="actual"
-              name={dataSource === 'live' ? 'Rüzgar Bazlı Üretim (MW)' : 'Gerçek Üretim (MW)'}
+              name="Power Curve Tahmini (MW)"
               stroke="#06b6d4"
               strokeWidth={2}
               fill="url(#gActual)"
@@ -272,7 +293,7 @@ function PowerForecastWidget() {
             <Area
               type="monotone"
               dataKey="lstm"
-              name="1s Sonraki LSTM Tahmini"
+              name="Open-Meteo Saatlik Projeksiyon"
               stroke="#a78bfa"
               strokeWidth={2}
               strokeDasharray="5 3"
@@ -287,12 +308,12 @@ function PowerForecastWidget() {
       {/* Bottom KPI strip */}
       <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-700/40">
         {[
-          { label: 'Peak MW', value: peakMW, color: 'text-cyan-400' },
-          { label: 'Model Doğruluğu', value: '97.2%', color: 'text-green-400' },
-          { label: 'MAE', value: '±1.8 MW', color: 'text-purple-400' },
+          { label: 'Peak Tahmin', value: peakMW, color: 'text-cyan-400' },
+          { label: 'Yöntem', value: 'Baseline', color: 'text-green-400' },
+          { label: 'Kaynak', value: 'Open-Meteo', color: 'text-purple-400' },
         ].map((m) => (
           <div key={m.label} className="text-center">
-            <div className={`font-bold text-lg ${m.color}`}>{m.value}</div>
+            <div className={`font-bold text-base ${m.color}`}>{m.value}</div>
             <div className="text-gray-500 text-xs">{m.label}</div>
           </div>
         ))}
@@ -415,9 +436,18 @@ function YawControlWidget() {
         </div>
       </div>
 
+      {/* Simülasyon etiketleri — gerçek model değil */}
       <div className="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-700/40">
-        <PulseBadge variant="purple">PPO Algorithm v3</PulseBadge>
-        <PulseBadge variant="green">Wake: FLORIS</PulseBadge>
+        <span style={{
+          fontSize: 9, fontWeight: 700, color: '#a78bfa',
+          background: '#1a0f2e', padding: '2px 8px',
+          borderRadius: 4, border: '1px solid #4c1d95',
+        }}>🎬 Simülasyon — Optimizasyon Senaryosu</span>
+        <span style={{
+          fontSize: 9, fontWeight: 700, color: '#6b7280',
+          background: '#111827', padding: '2px 8px',
+          borderRadius: 4, border: '1px solid #374151',
+        }}>Kuyruk: Referans Model</span>
       </div>
     </WidgetCard>
   );
@@ -449,24 +479,52 @@ function EcoMonitorWidget() {
       borderClass="border-green-500/20"
       badge={<PulseBadge variant="green">AI AKTİF</PulseBadge>}
     >
-      {/* Smart Curtailment */}
+      {/* Smart Curtailment — Simülasyon senaryosu */}
       <div className="bg-green-950/40 border border-green-700/30 rounded-xl p-3 mb-4 flex-shrink-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span>🐦</span>
-          <span className="text-green-300 text-xs font-bold">Smart Curtailment Aktif</span>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2">
+            <span>🐦</span>
+            <span className="text-green-300 text-xs font-bold">Smart Curtailment</span>
+          </div>
+          <span style={{
+            fontSize: 8, fontWeight: 700, color: '#a78bfa',
+            background: '#1a0f2e', padding: '1px 5px',
+            borderRadius: 3, border: '1px solid #4c1d95',
+          }}>Simülasyon Senaryosu</span>
         </div>
         <p className="text-gray-300 text-xs">
-          Hız <span className="text-yellow-300 font-bold">≤ 2 RPM</span> ile sınırlandırıldı.
+          Hız <span className="text-yellow-300 font-bold">≤ 2 RPM</span> ile sınırlandırılıyor (senaryo).
         </p>
-        <p className="text-green-400 text-xs font-semibold mt-0.5">
-          Kuş Ölümleri <span className="text-white font-black">%85 Azaltıldı</span> 🌿
+        <p className="text-green-600 text-xs mt-0.5">
+          Tahmini etki: Çarpışma riski azalması (simülasyon)
         </p>
         <div className="mt-2 bg-gray-800 rounded-full h-1.5">
           <div
             className="bg-gradient-to-r from-green-500 to-emerald-400 h-1.5 rounded-full transition-all"
-            style={{ width: '85%' }}
+            style={{ width: '60%' }}
           />
         </div>
+        {phase === 'detected' && (
+        <div className="bg-red-950/50 border-2 border-red-600/60 rounded-xl p-4">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⚠️</span>
+              <span className="text-red-300 text-xs font-black tracking-wide">DEMO ANALİZ SONUCU</span>
+            </div>
+            <span style={{
+              fontSize: 8, fontWeight: 700, color: '#a78bfa',
+              background: '#1a0f2e', padding: '1px 5px',
+              borderRadius: 3, border: '1px solid #4c1d95',
+            }}>Simülasyon</span>
+          </div>
+          <p className="text-red-200 text-xs font-semibold mb-1">
+            Demo Analiz: <span className="text-white font-black text-sm">%94</span> Olası Çatlak Bölgesi
+          </p>
+          <p className="text-orange-300 text-xs">🔧 Kestirimci Bakım Önerisi (demo çıktısı)</p>
+          <p className="text-gray-500 text-xs mt-1">Konum: WTG-04 / Kanat-B / Sektör 3</p>
+          <p className="text-gray-700 text-xs mt-1 italic">⚠ Gerçek YOLOv8 modeli entegrasyonu planlanıyor.</p>
+        </div>
+      )}
       </div>
 
       {/* Upload area */}
@@ -567,8 +625,8 @@ function FinancialROIWidget() {
         <p className="text-green-400 font-black text-4xl">+$12,400</p>
         <p className="text-gray-600 text-xs mt-1">Bu Dönem Teşvik Geliri / MWh Bazlı</p>
         <div className="flex gap-2 mt-2">
-          <span className="bg-green-900/50 border border-green-700/40 text-green-300 text-xs px-2 py-0.5 rounded-full">EPDK Onaylı</span>
-          <span className="bg-blue-900/50 border border-blue-700/40 text-blue-300 text-xs px-2 py-0.5 rounded-full">EÜAŞ Raporlandı</span>
+          <span className="bg-yellow-900/30 border border-yellow-700/40 text-yellow-500 text-xs px-2 py-0.5 rounded-full">PoC Senaryo Verisi</span>
+          <span className="bg-gray-800/50 border border-gray-700/40 text-gray-500 text-xs px-2 py-0.5 rounded-full">EPDK Veri Modeliyle Uyumlu</span>
         </div>
       </div>
 
@@ -701,9 +759,9 @@ function Sidebar({ activeTab, setActiveTab, perms }) {
       {/* Bottom info */}
       <div className="px-3 space-y-2">
         <div className="px-3 py-2 rounded-lg bg-gray-800/40 border border-gray-700/30">
-          <p className="text-gray-600 text-xs">Veri Kaynağı</p>
-          <p className="text-gray-300 text-xs font-semibold truncate">synthetic_scada_logs.json</p>
-          <p className="text-green-500 text-xs">● Statik / Offline</p>
+          <p className="text-gray-600 text-xs">Veri Kaynakları</p>
+          <p className="text-gray-300 text-xs font-semibold truncate">Open-Meteo API</p>
+          <p className="text-green-500 text-xs">● Gerçek + Hesaplanan</p>
         </div>
         <div className="px-3 py-2 rounded-lg bg-gray-800/40 border border-gray-700/30">
           <p className="text-gray-600 text-xs">Çalışma Modu</p>
@@ -737,12 +795,14 @@ function TelemetriTab({ perms }) {
   const BASE_WIND = 14.2;
 
   const [liveData, setLiveData] = useState({
-    power: 181.2,
+    power:    181.2,
     capFactor: 83.4,
-    wind: BASE_WIND,
-    ghi: 920,
+    wind:      BASE_WIND,
+    ghi:       920,
     windTrend: -0.5,
-    powerTrend: 3.2
+    powerTrend: 3.2,
+    _apiWeather:    null,   // Gerçek API verisi (RecommendationPanel için)
+    _hourlyForecast: null,  // Saatlik tahmin
   });
 
   // Gerçek rüzgar değeri referansı (simülasyon bu etrafında kalır)
@@ -757,11 +817,17 @@ function TelemetriTab({ perms }) {
         realGhiRef.current  = w.ghi > 0 ? w.ghi : 920;
         setLiveData(prev => ({
           ...prev,
-          wind: +w.windSpeed.toFixed(1),
-          ghi:  w.ghi > 0 ? Math.round(w.ghi) : prev.ghi,
+          wind:        +w.windSpeed.toFixed(1),
+          ghi:         w.ghi > 0 ? Math.round(w.ghi) : prev.ghi,
+          _apiWeather: w,  // Gerçek API nesnesini sakla
         }));
       })
       .catch(() => {}); // Hata durumunda simülasyon devam eder
+
+    // Saatlik tahmin (RecommendationPanel'deki kural motoru için)
+    fetchHourlyForecast(WEATHER_COORDS.res, 1)
+      .then(h => setLiveData(prev => ({ ...prev, _hourlyForecast: h })))
+      .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -832,6 +898,15 @@ function TelemetriTab({ perms }) {
         <PowerForecastWidget />
         <YawControlWidget />
       </div>
+
+      {/* Kural Tabanlı AI Öneri Paneli — Saha + Yönetici görür */}
+      {perms.telemetri && (
+        <RecommendationPanel
+          currentWeather={liveData._apiWeather || null}
+          hourlyForecast={liveData._hourlyForecast || null}
+          marineData={null}
+        />
+      )}
 
       {/* Eco widget (hidden for Finans) */}
       {perms.eko ? (
