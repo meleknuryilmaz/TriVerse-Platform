@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  fetchCurrentWeather,
+  fetchMarineData,
+  WEATHER_COORDS,
+} from '../services/weatherApi';
 
 // ─── Finansal Formüller (İktisat ekibinden) ─────────────────
 const TOTAL_RES_CAPACITY_MW = 1217;  // Enerjisa Toplam RES Kapasitesi
@@ -178,15 +183,20 @@ function StressGauge({ value, label }) {
 // ═════════════════════════════════════════════════════════════
 export default function StormControlWidget() {
   // ── State ──────────────────────────────────────────────────
-  const [stormActive, setStormActive] = useState(false);
-  const [solutionPhase, setSolutionPhase] = useState(0);  // 0=yok, 1=fren, 2=lojistik, 3=vpp
-  const [windSpeed, setWindSpeed]   = useState(12);       // m/s
-  const [waveHeight, setWaveHeight] = useState(1.2);      // metre
-  const [towerStress, setTowerStress] = useState(28);     // %
-  const [totalMWh, setTotalMWh]     = useState(0);
-  const [totalCO2, setTotalCO2]     = useState(0);
-  const [totalUSD, setTotalUSD]     = useState(0);
-  const tickRef = useRef(null);
+  const [stormActive,    setStormActive]    = useState(false);
+  const [solutionPhase,  setSolutionPhase]  = useState(0);   // 0=yok, 1=fren, 2=lojistik, 3=vpp
+  const [windSpeed,      setWindSpeed]      = useState(12);  // m/s
+  const [waveHeight,     setWaveHeight]     = useState(1.2); // metre
+  const [towerStress,    setTowerStress]    = useState(28);  // %
+  const [totalMWh,       setTotalMWh]       = useState(0);
+  const [totalCO2,       setTotalCO2]       = useState(0);
+  const [totalUSD,       setTotalUSD]       = useState(0);
+  // API durum takibi
+  const [apiStatus,      setApiStatus]      = useState('loading'); // 'loading'|'ok'|'error'
+  const [apiLastUpdate,  setApiLastUpdate]  = useState(null);      // son güncelleme zamanı
+  const tickRef        = useRef(null);
+  const stormActiveRef = useRef(false);   // interval içinde stale closure önler
+  const realWindRef    = useRef(12);      // gerçek API değeri (reset için)
 
   // ── Normal mod: Verileri simüle et ────────────────────────
   useEffect(() => {
@@ -209,6 +219,42 @@ export default function StormControlWidget() {
     }, 2000);
     return () => clearInterval(tickRef.current);
   }, [stormActive]);
+
+  // ── stormActive değişince ref'i güncelle ──────────────────
+  useEffect(() => {
+    stormActiveRef.current = stormActive;
+  }, [stormActive]);
+
+  // ── Gerçek Hava Verisi: Open-Meteo API ───────────────────
+  // İlk yükleme + 10 dakikada bir yenileme
+  useEffect(() => {
+    const loadWeather = async () => {
+      if (stormActiveRef.current) return; // Fırtına sırasında güncelleme
+      try {
+        const [weather, marine] = await Promise.all([
+          fetchCurrentWeather(WEATHER_COORDS.res),
+          fetchMarineData(WEATHER_COORDS.offshore),
+        ]);
+        realWindRef.current = weather.windSpeed;
+        // Mevcut değere yumuşak geçiş (ani sıçrama önler)
+        setWindSpeed(prev =>
+          stormActiveRef.current
+            ? prev
+            : +(prev * 0.4 + weather.windSpeed * 0.6).toFixed(1)
+        );
+        const wh = Math.max(0.1, marine.waveHeight);
+        setWaveHeight(+wh.toFixed(1));
+        setApiStatus('ok');
+        setApiLastUpdate(new Date());
+      } catch {
+        setApiStatus('error');
+      }
+    };
+
+    loadWeather(); // İlk yükleme
+    const id = setInterval(loadWeather, 10 * 60 * 1000); // 10 dakika
+    return () => clearInterval(id);
+  }, []); // Sadece mount'ta oluşturulur
 
   // ── Canlı sayaçlar: Enerji üretimi hesapla ────────────────
   useEffect(() => {
@@ -250,12 +296,26 @@ export default function StormControlWidget() {
     }, 9000);
   }, []);
 
-  const resetStorm = useCallback(() => {
+  const resetStorm = useCallback(async () => {
     setStormActive(false);
     setSolutionPhase(0);
-    setWindSpeed(12);
-    setWaveHeight(1.2);
     setTowerStress(28);
+    // Gerçek API'den güncel veriyi çek (hardcoded 12 yerine)
+    try {
+      const [weather, marine] = await Promise.all([
+        fetchCurrentWeather(WEATHER_COORDS.res),
+        fetchMarineData(WEATHER_COORDS.offshore),
+      ]);
+      realWindRef.current = weather.windSpeed;
+      setWindSpeed(+weather.windSpeed.toFixed(1));
+      setWaveHeight(+Math.max(0.1, marine.waveHeight).toFixed(1));
+      setApiStatus('ok');
+      setApiLastUpdate(new Date());
+    } catch {
+      // Fallback: ref'teki son bilinen gerçek değer
+      setWindSpeed(realWindRef.current);
+      setWaveHeight(1.2);
+    }
   }, []);
 
   // ── Render ─────────────────────────────────────────────────
@@ -419,16 +479,36 @@ export default function StormControlWidget() {
       </div>
 
       {/* Alt bilgi */}
-      <div className="flex gap-2 flex-wrap mt-4 pt-3 border-t border-gray-700/40">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-cyan-900/40 border-cyan-600/40 text-cyan-300">
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-cyan-400" /> Open-Meteo API
-        </span>
+      <div className="flex gap-2 flex-wrap mt-4 pt-3 border-t border-gray-700/40 items-center">
+        {/* Canlı veri kaynak göstergesi */}
+        {apiStatus === 'ok' && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-cyan-900/40 border-cyan-600/40 text-cyan-300">
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-cyan-400" />
+            Open-Meteo — CANLI
+          </span>
+        )}
+        {apiStatus === 'loading' && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-gray-800/60 border-gray-600/40 text-gray-400">
+            <span className="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+            Veri yükleniyor…
+          </span>
+        )}
+        {apiStatus === 'error' && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-red-900/30 border-red-700/40 text-red-400">
+            ⚠ API Bağlantı Hatası
+          </span>
+        )}
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-purple-900/40 border-purple-600/40 text-purple-300">
           LSTM v2.4
         </span>
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-green-900/40 border-green-600/40 text-green-300">
           I-REC + Gold Standard
         </span>
+        {apiStatus === 'ok' && apiLastUpdate && (
+          <span className="ml-auto text-gray-600 text-xs tabular-nums">
+            Son güncelleme: {apiLastUpdate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
         {stormActive && (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-red-900/40 border-red-600/40 text-red-300 animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400" /> STORM MODE

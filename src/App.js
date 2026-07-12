@@ -27,6 +27,12 @@ import ENERJISA_PLANTS from './data/enerjisaPlants';
 import PlantMapWidget from './components/PlantMapWidget';
 import StormControlWidget from './components/StormControlWidget';
 import { ProfitLossChartWidget, HROpsWidget, MaintenanceCalendarWidget, CorrosionMapWidget, OffshoreROIWidget, BiodiversityScoreWidget } from './components/DashboardWidgets';
+import {
+  fetchCurrentWeather,
+  fetchHourlyForecast,
+  hourlyToScadaLogs,
+  WEATHER_COORDS,
+} from './services/weatherApi';
 
 // ─────────────────────────────────────────────────────────────
 //  STATIC SYNTHETIC SCADA DATA  (synthetic_scada_logs.json)
@@ -176,17 +182,57 @@ function ChartTooltip({ active, payload, label, unit = 'MW' }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  WIDGET 1 — POWER FORECAST CHART (LSTM)
+//  WIDGET 1 — POWER FORECAST CHART (LSTM + Gerçek Saatlik Tahmin)
 // ─────────────────────────────────────────────────────────────
 function PowerForecastWidget() {
+  const [scadaData,   setScadaData]   = useState(SYNTHETIC_SCADA_LOGS);
+  const [dataSource,  setDataSource]  = useState('synthetic'); // 'synthetic' | 'live'
+  const [loadingData, setLoadingData] = useState(true);
+
+  // Gerçek saatlik rüzgar tahmini (Open-Meteo)
+  useEffect(() => {
+    fetchHourlyForecast(WEATHER_COORDS.res)
+      .then(hourly => {
+        const logs = hourlyToScadaLogs(hourly);
+        if (logs.length > 0) {
+          setScadaData(logs);
+          setDataSource('live');
+        }
+      })
+      .catch(() => {
+        // API hatasında sentetik veri kalsın
+      })
+      .finally(() => setLoadingData(false));
+  }, []);
+
+  const peakMW = scadaData.length
+    ? Math.max(...scadaData.map(d => d.actual)).toFixed(1)
+    : '102.3';
+
   return (
     <WidgetCard
       title="⚡ Güç Üretim Tahmini (LSTM)"
-      subtitle="Gerçek zamanlı SCADA telemetri + AI tahmini"
+      subtitle={
+        dataSource === 'live'
+          ? 'Open-Meteo gerçek rüzgar verisi → Kübik güç yasası + LSTM'
+          : 'Gerçek zamanlı SCADA telemetri + AI tahmini'
+      }
       borderClass="border-cyan-500/20"
       badge={
         <div className="flex gap-1.5 flex-wrap justify-end">
-          <PulseBadge variant="cyan">CANLI</PulseBadge>
+          {dataSource === 'live' ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-green-900/40 border-green-600/40 text-green-300">
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-green-400" />
+              CANLI VERİ
+            </span>
+          ) : loadingData ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-gray-800/60 border-gray-600/40 text-gray-400">
+              <span className="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin" />
+              Yükleniyor
+            </span>
+          ) : (
+            <PulseBadge variant="cyan">CANLI</PulseBadge>
+          )}
           <PulseBadge variant="purple">LSTM v2.4</PulseBadge>
         </div>
       }
@@ -194,7 +240,7 @@ function PowerForecastWidget() {
       {/* Chart */}
       <div style={{ height: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={SYNTHETIC_SCADA_LOGS} margin={{ top: 5, right: 8, left: -12, bottom: 0 }}>
+          <AreaChart data={scadaData} margin={{ top: 5, right: 8, left: -12, bottom: 0 }}>
             <defs>
               <linearGradient id="gActual" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#06b6d4" stopOpacity={0.35} />
@@ -207,7 +253,7 @@ function PowerForecastWidget() {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.5} />
             <XAxis dataKey="time" stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} interval={3} />
-            <YAxis stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} domain={[0, 120]} unit=" MW" />
+            <YAxis stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} domain={[0, 'auto']} unit=" MW" />
             <Tooltip content={<ChartTooltip />} />
             <Legend
               wrapperStyle={{ paddingTop: 8 }}
@@ -216,7 +262,7 @@ function PowerForecastWidget() {
             <Area
               type="monotone"
               dataKey="actual"
-              name="Gerçek Üretim (MW)"
+              name={dataSource === 'live' ? 'Rüzgar Bazlı Üretim (MW)' : 'Gerçek Üretim (MW)'}
               stroke="#06b6d4"
               strokeWidth={2}
               fill="url(#gActual)"
@@ -241,7 +287,7 @@ function PowerForecastWidget() {
       {/* Bottom KPI strip */}
       <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-700/40">
         {[
-          { label: 'Peak MW', value: '102.3', color: 'text-cyan-400' },
+          { label: 'Peak MW', value: peakMW, color: 'text-cyan-400' },
           { label: 'Model Doğruluğu', value: '97.2%', color: 'text-green-400' },
           { label: 'MAE', value: '±1.8 MW', color: 'text-purple-400' },
         ].map((m) => (
@@ -689,7 +735,7 @@ function TelemetriTab({ perms }) {
   // Gerçek kurulu güç verisi: Enerjisa toplam kurulu güç ~3473 MW
   const TOTAL_CAPACITY = ENERJISA_PLANTS.reduce((sum, p) => sum + (p.mw || 0), 0);
   const BASE_WIND = 14.2;
-  
+
   const [liveData, setLiveData] = useState({
     power: 181.2,
     capFactor: 83.4,
@@ -699,33 +745,59 @@ function TelemetriTab({ perms }) {
     powerTrend: 3.2
   });
 
+  // Gerçek rüzgar değeri referansı (simülasyon bu etrafında kalır)
+  const realWindRef = useRef(BASE_WIND);
+  const realGhiRef  = useRef(920);
+
+  // ── Gerçek Hava Durumu: İlk Yükleme ───────────────────────
   useEffect(() => {
-    // Canlı veri simülasyonu (Her 2 saniyede bir güncellenir)
+    fetchCurrentWeather(WEATHER_COORDS.res)
+      .then(w => {
+        realWindRef.current = w.windSpeed;
+        realGhiRef.current  = w.ghi > 0 ? w.ghi : 920;
+        setLiveData(prev => ({
+          ...prev,
+          wind: +w.windSpeed.toFixed(1),
+          ghi:  w.ghi > 0 ? Math.round(w.ghi) : prev.ghi,
+        }));
+      })
+      .catch(() => {}); // Hata durumunda simülasyon devam eder
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Canlı veri simülasyonu (Her 2.5 saniyede bir güncellenir)
+    // Rüzgar, gerçek API değerinin ±2.5 m/s aralığında tutulur
     const timer = setInterval(() => {
       setLiveData(prev => {
         const windFluctuation = (Math.random() * 0.8) - 0.4;
         let newWind = prev.wind + windFluctuation;
-        // Rüzgarı 12 ile 18 arasında tut
-        if (newWind < 12) newWind += Math.abs(windFluctuation) * 2;
-        if (newWind > 18) newWind -= Math.abs(windFluctuation) * 2;
+        // Gerçek API değerine yakın tut (±2.5 m/s bant)
+        const realWind = realWindRef.current;
+        newWind = Math.max(realWind - 2.5, Math.min(realWind + 2.5, newWind));
+        newWind = Math.max(3, Math.min(25, newWind)); // cut-in / cut-out sınırları
 
-        // Gerçekçi formül: P = Capacity * (Wind/MaxWind)^3
-        // Rüzgar santralleri toplam kapasitesi: ~1217 MW
+        // Kübik güç yasası
         const RES_CAPACITY = 1217;
-        const windRatio = Math.pow(Math.min(newWind / 25, 1), 3); 
-        
-        // Baz üretim (HES, DGÇS, Linyit, GES) yaklaşık 1500 MW + Rüzgar
+        const windRatio = Math.pow(Math.min(newWind / 25, 1), 3);
+
         const baseGeneration = 1400 + (Math.random() * 50 - 25);
         const windGeneration = RES_CAPACITY * windRatio;
         const newPower = baseGeneration + windGeneration;
 
+        // GHI: gerçek API değerinin ±15 W/m² bantında
+        const realGhi = realGhiRef.current;
+        const newGhi  = Math.max(
+          realGhi - 15,
+          Math.min(realGhi + 15, prev.ghi + (Math.random() * 6 - 3))
+        );
+
         return {
-          power: newPower,
-          capFactor: (newPower / TOTAL_CAPACITY) * 100,
-          wind: newWind,
-          ghi: prev.ghi + (Math.random() * 6 - 3),
-          windTrend: windFluctuation > 0 ? Number((windFluctuation * 2).toFixed(1)) : Number((windFluctuation * 2).toFixed(1)),
-          powerTrend: (newPower > prev.power) ? Number(((newPower - prev.power) / 10).toFixed(1)) : Number(((newPower - prev.power) / 10).toFixed(1))
+          power:       newPower,
+          capFactor:   (newPower / TOTAL_CAPACITY) * 100,
+          wind:        +newWind.toFixed(1),
+          ghi:         Math.round(newGhi),
+          windTrend:   +((windFluctuation) * 2).toFixed(1),
+          powerTrend:  +((newPower - prev.power) / 10).toFixed(1),
         };
       });
     }, 2500);
