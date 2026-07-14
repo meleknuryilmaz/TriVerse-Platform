@@ -1,8 +1,125 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import ENERJISA_PLANTS, { PLANT_TYPE_CONFIG } from '../data/enerjisaPlants';
 import { fetchCurrentWeather } from '../services/weatherApi';
+
+// ── Orijinal Enerjisa Simgeleri ve CSS Animasyonu (Pervane Dönüşü) ──
+const MAP_STYLE_OVERLAY = `
+  @keyframes turbine-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .turbine-blade-spin {
+    animation: turbine-spin 4s linear infinite;
+    transform-origin: 12px 12px;
+  }
+  .enerjisa-map-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+  }
+  .enerjisa-map-icon:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px currentColor;
+    border-color: rgba(255, 255, 255, 0.95);
+    z-index: 9999 !important;
+  }
+  .custom-leaflet-plant-icon {
+    background: transparent !important;
+    border: none !important;
+  }
+`;
+
+function createPlantIcon(type, status, size = 28) {
+  let bgColor = '#22c55e';
+  let svgContent = '';
+  const isPlanned = status === 'planned';
+  const opacity = isPlanned ? 0.6 : 1.0;
+  const borderStyle = isPlanned ? 'border: 1.5px dashed rgba(255, 255, 255, 0.4);' : 'border: 1.5px solid rgba(255, 255, 255, 0.6);';
+
+  // Simgelerin iç SVG'si (boyuta göre ölçeklenir)
+  switch (type) {
+    case 'RES':
+    case 'Offshore':
+      bgColor = '#22c55e'; // Rüzgar Yeşil
+      const spinClass = isPlanned ? '' : 'turbine-blade-spin';
+      svgContent = `
+        <svg width="75%" height="75%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 12V21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="1.5" fill="white"/>
+          <g class="${spinClass}">
+            <path d="M12 12V4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 12L5.07 16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 12L18.93 16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </svg>
+      `;
+      break;
+    case 'HES':
+      bgColor = '#0284c7'; // Hidro Mavi
+      svgContent = `
+        <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 7C5 7 7 5 9 5C11 5 13 7 15 7C17 7 19 5 21 5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M3 12C5 12 7 10 9 10C11 10 13 12 15 12C17 12 19 10 21 10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M3 17C5 17 7 15 9 15C11 15 13 17 15 17C17 17 19 15 21 15" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      `;
+      break;
+    case 'GES':
+      bgColor = '#ea580c'; // Güneş Turuncu
+      svgContent = `
+        <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="2.5"/>
+          <path d="M12 2V4M12 20V22M4 12H2M22 12H20M6.34 6.34L7.76 7.76M17.66 17.66L16.24 16.24M6.34 18.66L7.76 17.24M17.66 6.34L16.24 7.76" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      `;
+      break;
+    case 'DGÇS':
+      bgColor = '#a78bfa'; // Doğalgaz Mor
+      svgContent = `
+        <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C12 2 17 6.5 17 11.5C17 14.5386 14.7614 17 12 17C9.23858 17 7 14.5386 7 11.5C7 6.5 12 2 12 2Z" fill="white"/>
+          <path d="M12 8C12 8 13.5 10 13.5 11.5C13.5 12.3 12.8 13 12 13C11.2 13 10.5 12.3 10.5 11.5C10.5 10 12 8 12 8Z" fill="#a78bfa"/>
+        </svg>
+      `;
+      break;
+    default: // Termik / Linyit / Diğer (Gri)
+      bgColor = '#6b7280';
+      svgContent = `
+        <svg width="65%" height="65%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 20L9.5 6H14.5L17 20H7Z" stroke="white" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M10 20V13H14V20" stroke="white" stroke-width="2"/>
+          <path d="M9 10H15" stroke="white" stroke-width="2"/>
+          <path d="M10 4C10 4 10.5 2.5 11 3M13 4C13 4 13.5 2.5 14 3" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      `;
+  }
+
+  return L.divIcon({
+    className: 'custom-leaflet-plant-icon',
+    html: `
+      <div class="enerjisa-map-icon" style="
+        background-color: ${bgColor}; 
+        color: ${bgColor}; 
+        width: ${size}px; 
+        height: ${size}px; 
+        opacity: ${opacity}; 
+        ${borderStyle}
+      ">
+        ${svgContent}
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+}
 
 // ── Rüzgar gücü tahmini (kübik yasa) ────────────────────────
 function calcWindPower(capacityMW, windSpeed) {
@@ -289,6 +406,9 @@ export default function PlantMapWidget() {
         </span>
       </div>
 
+      {/* CSS overlay */}
+      <style>{MAP_STYLE_OVERLAY}</style>
+
       {/* Filtre */}
       <FilterBar activeTypes={activeTypes} toggleType={toggleType} />
 
@@ -309,27 +429,20 @@ export default function PlantMapWidget() {
 
           {filtered.map(plant => {
             const cfg       = PLANT_TYPE_CONFIG[plant.type] || PLANT_TYPE_CONFIG.RES;
-            const isPlanned = plant.status === 'planned';
-            const radius    = Math.max(5, Math.min(18, Math.sqrt(plant.mw) * 1.2));
+            const size      = Math.max(22, Math.min(32, Math.sqrt(plant.mw) * 2.2));
+            const customIcon = createPlantIcon(plant.type, plant.status, size);
 
             return (
-              <CircleMarker
+              <Marker
                 key={plant.id}
-                center={[plant.lat, plant.lon]}
-                radius={radius}
-                pathOptions={{
-                  color:       cfg.color,
-                  fillColor:   cfg.color,
-                  fillOpacity: isPlanned ? 0.3 : 0.6,
-                  weight:      isPlanned ? 2 : 1.5,
-                  dashArray:   isPlanned ? '5,5' : undefined,
-                }}
+                position={[plant.lat, plant.lon]}
+                icon={customIcon}
               >
                 {/* Tıklanınca PlantWeatherPopup mount olur → API çağrısı tetiklenir */}
                 <Popup className="enerjisa-popup" maxWidth={240}>
                   <PlantWeatherPopup plant={plant} cfg={cfg} />
                 </Popup>
-              </CircleMarker>
+              </Marker>
             );
           })}
         </MapContainer>
