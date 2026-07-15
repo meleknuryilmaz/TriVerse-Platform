@@ -31,6 +31,7 @@ import PlantMapWidget    from './components/PlantMapWidget';
 import StormControlWidget from './components/StormControlWidget';
 import RecommendationPanel from './components/RecommendationPanel';
 import { ProfitLossChartWidget, HROpsWidget, MaintenanceCalendarWidget, CorrosionMapWidget, OffshoreROIWidget, BiodiversityScoreWidget } from './components/DashboardWidgets';
+import ChatbotWidget from './components/ChatbotWidget';
 import {
   fetchCurrentWeather,
   fetchHourlyForecast,
@@ -1226,6 +1227,9 @@ export default function App() {
           <Footer />
         </div>
       </main>
+
+      {/* Kurumsal AI Chatbot — Her sayfada erişilebilir */}
+      <ChatbotWidget />
     </div>
   );
 }
