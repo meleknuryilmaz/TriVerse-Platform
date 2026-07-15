@@ -30,7 +30,13 @@ import ENERJISA_PLANTS from './data/enerjisaPlants';
 import PlantMapWidget    from './components/PlantMapWidget';
 import StormControlWidget from './components/StormControlWidget';
 import RecommendationPanel from './components/RecommendationPanel';
-import { ProfitLossChartWidget, HROpsWidget, MaintenanceCalendarWidget, CorrosionMapWidget, OffshoreROIWidget, BiodiversityScoreWidget } from './components/DashboardWidgets';
+import {
+  ProfitLossChartWidget, MaintenanceCalendarWidget, CorrosionMapWidget,
+  OffshoreROIWidget, BiodiversityScoreWidget,
+  PersonnelCompetencyWidget, ShiftReadinessWidget,
+  EmployeeSatisfactionWidget, SafetyWelfareWidget,
+} from './components/DashboardWidgets';
+
 import ChatbotWidget from './components/ChatbotWidget';
 import {
   fetchCurrentWeather,
@@ -1155,87 +1161,41 @@ function IKTab({ perms }) {
     return <AccessDenied message="İK & Operasyon modülü bu rolde gizlidir." />;
   }
 
-  // Operasyonel görevler
-  const shiftData = [
-    { shift: 'Sabah (06–14)', staff: 12, active: true },
-    { shift: 'Öğleden Sonra (14–22)', staff: 9, active: false },
-    { shift: 'Gece (22–06)', staff: 5, active: false },
-  ];
-
-  const openPositions = [
-    { title: 'Rüzgar Türbin Teknisyeni', location: 'Manisa RES', priority: 'Acil' },
-    { title: 'SCADA Operatörü', location: 'İstanbul Merkez', priority: 'Normal' },
-    { title: 'Saha Güvenlik Sorumlusu', location: 'Balıkesir RES', priority: 'Normal' },
-  ];
-
   return (
     <div className="space-y-4">
-      {/* İK notu */}
-      <div className="bg-blue-950/30 border border-blue-700/30 rounded-xl p-3 flex items-center gap-3">
-        <span className="text-blue-400 text-lg">ℹ️</span>
-        <p className="text-blue-300 text-xs">
-          Bakım Takvimi ve Korozyon Risk Haritası <span className="font-semibold">Operasyon (Telemetri)</span> ekranına taşındı.
-        </p>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ minHeight: 400 }}>
-        {/* İş Gücü & Maaş Dağılımı */}
-        <HROpsWidget />
-
-        {/* Vardiya Durumu */}
-        <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm h-full flex flex-col">
-          <h3 className="text-white font-bold text-sm mb-4">🕐 Vardiya Durumu</h3>
-          <div className="space-y-3 flex-1">
-            {shiftData.map(s => (
-              <div key={s.shift} className={`rounded-xl p-3 flex items-center justify-between border ${
-                s.active
-                  ? 'bg-green-900/20 border-green-700/30'
-                  : 'bg-gray-800/40 border-gray-700/30'
-              }`}>
-                <div>
-                  <p className="text-gray-200 text-xs font-semibold">{s.shift}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">{s.staff} personel</p>
-                </div>
-                {s.active ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-900/50 border border-green-700/40 text-green-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    Aktif
-                  </span>
-                ) : (
-                  <span className="text-xs text-gray-600 px-2 py-0.5 rounded-full bg-gray-800/60 border border-gray-700/30">Beklemede</span>
-                )}
-              </div>
-            ))}
+      {/* Sayfa başlık banner */}
+      <div className="bg-gradient-to-r from-cyan-950/40 to-purple-950/40 border border-cyan-700/20 rounded-2xl p-4">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-white font-bold text-base flex items-center gap-2">
+              👥 İK, Yetkinlik & Çalışan Güvenliği
+            </h2>
+            <p className="text-gray-500 text-xs mt-1 max-w-xl">
+              Üçlü dönüşümün sosyal boyutu — yetkinlik, vardiya hazırlığı, çalışan memnuniyeti ve iş güvenliği
+            </p>
           </div>
-          <p className="text-gray-600 text-xs mt-3 pt-3 border-t border-gray-700/30">Toplam: 26 saha personeli</p>
-        </div>
-
-        {/* Açık Pozisyonlar */}
-        <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm h-full flex flex-col">
-          <h3 className="text-white font-bold text-sm mb-4">📋 Açık Pozisyonlar</h3>
-          <div className="space-y-3 flex-1">
-            {openPositions.map(p => (
-              <div key={p.title} className="bg-gray-800/40 rounded-xl p-3 border border-gray-700/30">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-gray-200 text-xs font-semibold leading-snug">{p.title}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                    p.priority === 'Acil'
-                      ? 'bg-red-900/50 border border-red-700/40 text-red-300'
-                      : 'bg-gray-700/50 border border-gray-600/30 text-gray-400'
-                  }`}>{p.priority}</span>
-                </div>
-                <p className="text-gray-600 text-xs mt-1">📍 {p.location}</p>
-              </div>
-            ))}
+          <div className="flex gap-2 flex-shrink-0 flex-wrap">
+            <span className="bg-yellow-900/30 border border-yellow-700/40 text-yellow-500 text-xs px-2 py-0.5 rounded-full">PoC Senaryo Verisi</span>
+            <span className="bg-gray-800/50 border border-gray-700/40 text-gray-500 text-xs px-2 py-0.5 rounded-full">Gerçek İK verisi değildir</span>
           </div>
-          <p className="text-gray-600 text-xs mt-3 pt-3 border-t border-gray-700/30">
-            Toplam 3 açık pozisyon · İşe alım süreci devam ediyor
-          </p>
         </div>
       </div>
+
+      {/* Üst satır — 3 kolon */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ minHeight: 520 }}>
+        <PersonnelCompetencyWidget />
+        <ShiftReadinessWidget />
+        <EmployeeSatisfactionWidget />
+      </div>
+
+      {/* Alt satır — tam genişlik */}
+      <SafetyWelfareWidget />
+
     </div>
   );
 }
+
 
 function GelecekTab({ perms }) {
   if (!perms.tsrs) {
