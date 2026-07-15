@@ -132,7 +132,7 @@ function PulseBadge({ children, variant = 'cyan' }) {
 }
 
 /** KPI metric card */
-function KPICard({ label, value, unit, trend, icon, accentClass = 'text-cyan-400' }) {
+function KPICard({ label, value, unit, trend, icon, accentClass = 'text-cyan-400', hint }) {
   const isUp = trend > 0;
   return (
     <div className="bg-gray-900/70 border border-gray-700/50 rounded-xl p-4 flex flex-col gap-1 hover:border-gray-600/60 transition-colors">
@@ -148,6 +148,9 @@ function KPICard({ label, value, unit, trend, icon, accentClass = 'text-cyan-400
         <span className={`text-xs ${isUp ? 'text-green-400' : 'text-red-400'}`}>
           {isUp ? '▲' : '▼'} {Math.abs(trend)}% son 24s
         </span>
+      )}
+      {hint && (
+        <span className="text-xs text-gray-600 mt-0.5 leading-tight">{hint}</span>
       )}
     </div>
   );
@@ -625,9 +628,10 @@ function FinancialROIWidget() {
         <p className="text-gray-500 text-xs uppercase font-semibold tracking-wider mb-1">YEKA ROI Kazanımı</p>
         <p className="text-green-400 font-black text-4xl">+$12,400</p>
         <p className="text-gray-600 text-xs mt-1">Bu Dönem Teşvik Geliri / MWh Bazlı</p>
-        <div className="flex gap-2 mt-2">
+        <div className="flex flex-wrap gap-2 mt-2">
           <span className="bg-yellow-900/30 border border-yellow-700/40 text-yellow-500 text-xs px-2 py-0.5 rounded-full">PoC Senaryo Verisi</span>
           <span className="bg-gray-800/50 border border-gray-700/40 text-gray-500 text-xs px-2 py-0.5 rounded-full">EPDK Veri Modeliyle Uyumlu</span>
+          <span className="bg-gray-800/50 border border-gray-700/40 text-gray-600 text-xs px-2 py-0.5 rounded-full">📅 7 günlük senaryo</span>
         </div>
       </div>
 
@@ -636,10 +640,12 @@ function FinancialROIWidget() {
         <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-2.5 text-center">
           <div className="text-cyan-400 font-bold text-xl">847</div>
           <div className="text-gray-500 text-xs">tCO₂e Tasarruf</div>
+          <div className="text-gray-700 text-xs mt-1 leading-tight">Son 24 saat tahmini üretime göre</div>
         </div>
         <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-2.5 text-center">
           <div className="text-purple-400 font-bold text-xl">€24.6K</div>
           <div className="text-gray-500 text-xs">Karbon Kredi</div>
+          <div className="text-gray-700 text-xs mt-1 leading-tight">PoC senaryo fiyatı • Gold Standard</div>
         </div>
       </div>
 
@@ -883,12 +889,28 @@ function TelemetriTab({ perms }) {
       {/* Harita — Ana Kontrol Odası */}
       <PlantMapWidget />
 
-      {/* KPI Strip (Canlı Gerçekçi Veri) */}
+      {/* KPI Strip — zaman aralığı ve veri tipi bağlamı */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard label="Toplam Üretim"     value={(liveData.power).toFixed(1)} unit="MW"    trend={liveData.powerTrend}  icon="⚡" accentClass="text-cyan-400"   />
-        <KPICard label="Kapasite Faktörü"  value={(liveData.capFactor).toFixed(1)}  unit="%"     trend={liveData.powerTrend > 0 ? 0.2 : -0.2}  icon="📈" accentClass="text-green-400"  />
-        <KPICard label="Rüzgar Hızı (Ort)" value={(liveData.wind).toFixed(1)}  unit="m/s"   trend={liveData.windTrend} icon="💨" accentClass="text-yellow-400" />
-        <KPICard label="GHI İrradyans"     value={(liveData.ghi).toFixed(0)}   unit="W/m²"  trend={0.5}  icon="☀️" accentClass="text-orange-400" />
+        <KPICard
+          label="Toplam Üretim"     value={(liveData.power).toFixed(1)} unit="MW"
+          trend={liveData.powerTrend}  icon="⚡" accentClass="text-cyan-400"
+          hint="Power Curve tahmini • Anlık"
+        />
+        <KPICard
+          label="Kapasite Faktörü"  value={(liveData.capFactor).toFixed(1)} unit="%"
+          trend={liveData.powerTrend > 0 ? 0.2 : -0.2} icon="📈" accentClass="text-green-400"
+          hint="Anlık tahmin bazlı"
+        />
+        <KPICard
+          label="Rüzgar Hızı (Ort)" value={(liveData.wind).toFixed(1)} unit="m/s"
+          trend={liveData.windTrend} icon="💨" accentClass="text-yellow-400"
+          hint="Open-Meteo gerçek veri ± simülasyon"
+        />
+        <KPICard
+          label="GHI İrradyans"     value={(liveData.ghi).toFixed(0)} unit="W/m²"
+          trend={0.5} icon="☀️" accentClass="text-orange-400"
+          hint="Open-Meteo gerçek veri"
+        />
       </div>
 
       {/* Fırtına Kontrol & Canlı Sayaçlar */}
@@ -909,19 +931,26 @@ function TelemetriTab({ perms }) {
         />
       )}
 
-      {/* Eco widget (hidden for Finans) */}
-      {perms.eko ? (
-        <EcoMonitorWidget />
-      ) : (
-        <div className="bg-gray-800/20 border border-gray-700/30 rounded-xl p-4 flex items-center gap-3">
-          <span className="text-2xl">🔒</span>
-          <div>
-            <p className="text-gray-500 text-sm font-semibold">Ekolojik Koruma Modülü</p>
-            <p className="text-gray-700 text-xs">
-              Bu bölüm Finans Direktörü rolünde gizlidir.{' '}
-              <span className="text-cyan-700">Saha Mühendisi</span> veya{' '}
-              <span className="text-cyan-700">Üst Düzey Yönetici</span> rolü gereklidir.
-            </p>
+      {/* Drone Denetimi — Kısa Durum Özeti (Detay: Sürdürülebilirlik & Çevre ekranı) */}
+      {perms.eko && (
+        <div className="bg-gray-900/70 border border-green-700/30 rounded-xl p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🚁</span>
+            <div>
+              <p className="text-white text-sm font-semibold">Drone Denetimi</p>
+              <p className="text-gray-500 text-xs mt-0.5">
+                Son tarama: <span className="text-gray-300">05.07.2026 — 14:23</span>
+                <span className="mx-2 text-gray-700">·</span>
+                Sektör A-B-C / 12 km²
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-green-900/40 border-green-600/40 text-green-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+              Normal
+            </span>
+            <span className="text-gray-600 text-xs italic">Detay → Sürdürülebilirlik & Çevre</span>
           </div>
         </div>
       )}
@@ -1052,65 +1081,71 @@ function SurdTab({ perms }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 500 }}>
-      <EcoMonitorWidget />
+    <div className="space-y-4">
+      {/* Drone + EcoMonitor (tam versiyon burada) */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 500 }}>
+        <EcoMonitorWidget />
 
-      <WidgetCard
-        title="🌍 Biyoçeşitlilik & Habitat İzleme"
-        subtitle="Termal Kamera + Drone Tarama — Sektör A-B-C"
-        borderClass="border-green-500/20"
-      >
-        <div className="space-y-2 flex-1">
-          {species.map(s => (
-            <div key={s.name} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-3 py-2.5">
-              <div>
-                <p className="text-white text-xs font-semibold">{s.name}</p>
-                <p className="text-gray-500 text-xs">Gözlem: {s.count} birey</p>
+        <WidgetCard
+          title="🌍 Biyoçeşitlilik & Habitat İzleme"
+          subtitle="Termal Kamera + Drone Tarama — Sektör A-B-C"
+          borderClass="border-green-500/20"
+        >
+          <div className="space-y-2 flex-1">
+            {species.map(s => (
+              <div key={s.name} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-3 py-2.5">
+                <div>
+                  <p className="text-white text-xs font-semibold">{s.name}</p>
+                  <p className="text-gray-500 text-xs">Gözlem: {s.count} birey</p>
+                </div>
+                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${s.badge}`}>
+                  {s.risk}
+                </span>
               </div>
-              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${s.badge}`}>
-                {s.risk}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {/* Drone scan log */}
-        <div className="mt-4 p-3 bg-blue-950/30 border border-blue-700/30 rounded-xl">
-          <p className="text-blue-300 text-xs font-semibold">
-            🛰️ Son Drone Tarama:{' '}
-            <span className="text-white">05.07.2026 — 14:23</span>
-          </p>
-          <p className="text-gray-600 text-xs mt-0.5">
-            Güzergah: Sektör A-B-C / 12 km² / 4K termal kamera / NDVI analiz
-          </p>
-        </div>
+          {/* Drone scan log */}
+          <div className="mt-4 p-3 bg-blue-950/30 border border-blue-700/30 rounded-xl">
+            <p className="text-blue-300 text-xs font-semibold">
+              🛰️ Son Drone Tarama:{' '}
+              <span className="text-white">05.07.2026 — 14:23</span>
+            </p>
+            <p className="text-gray-600 text-xs mt-0.5">
+              Güzergah: Sektör A-B-C / 12 km² / 4K termal kamera / NDVI analiz
+            </p>
+          </div>
 
-        {/* Habitat health */}
-        <div className="mt-3 space-y-2">
-          {[
-            { label: 'Habitat Sağlık Skoru', val: 78, color: 'from-green-600 to-emerald-500', textColor: 'text-green-400' },
-            { label: 'Biyoçeşitlilik İndeksi (Shannon)', val: 63, color: 'from-blue-600 to-cyan-500', textColor: 'text-cyan-400' },
-          ].map(m => (
-            <div key={m.label}>
-              <div className="flex justify-between mb-1">
-                <span className="text-gray-500 text-xs">{m.label}</span>
-                <span className={`text-xs font-bold ${m.textColor}`}>{m.val}/100</span>
+          {/* Habitat health */}
+          <div className="mt-3 space-y-2">
+            {[
+              { label: 'Habitat Sağlık Skoru', val: 78, color: 'from-green-600 to-emerald-500', textColor: 'text-green-400' },
+              { label: 'Biyoçeşitlilik İndeksi (Shannon)', val: 63, color: 'from-blue-600 to-cyan-500', textColor: 'text-cyan-400' },
+            ].map(m => (
+              <div key={m.label}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-gray-500 text-xs">{m.label}</span>
+                  <span className={`text-xs font-bold ${m.textColor}`}>{m.val}/100</span>
+                </div>
+                <div className="bg-gray-700 rounded-full h-1.5">
+                  <div
+                    className={`bg-gradient-to-r ${m.color} h-1.5 rounded-full transition-all`}
+                    style={{ width: `${m.val}%` }}
+                  />
+                </div>
               </div>
-              <div className="bg-gray-700 rounded-full h-1.5">
-                <div
-                  className={`bg-gradient-to-r ${m.color} h-1.5 rounded-full transition-all`}
-                  style={{ width: `${m.val}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-700/40">
-          <PulseBadge variant="green">IBA Uyumlu</PulseBadge>
-          <PulseBadge variant="cyan">EBRD PR6</PulseBadge>
-        </div>
-      </WidgetCard>
+          <div className="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-700/40">
+            <PulseBadge variant="green">IBA Uyumlu</PulseBadge>
+            <PulseBadge variant="cyan">EBRD PR6</PulseBadge>
+          </div>
+        </WidgetCard>
+      </div>
+
+      {/* Biyoçeşitlilik Skoru — Offshore tab'dan taşındı */}
+      <BiodiversityScoreWidget />
     </div>
   );
 }
@@ -1119,11 +1154,85 @@ function IKTab({ perms }) {
   if (!perms.telemetri) {
     return <AccessDenied message="İK & Operasyon modülü bu rolde gizlidir." />;
   }
+
+  // Operasyonel görevler
+  const shiftData = [
+    { shift: 'Sabah (06–14)', staff: 12, active: true },
+    { shift: 'Öğleden Sonra (14–22)', staff: 9, active: false },
+    { shift: 'Gece (22–06)', staff: 5, active: false },
+  ];
+
+  const openPositions = [
+    { title: 'Rüzgar Türbin Teknisyeni', location: 'Manisa RES', priority: 'Acil' },
+    { title: 'SCADA Operatörü', location: 'İstanbul Merkez', priority: 'Normal' },
+    { title: 'Saha Güvenlik Sorumlusu', location: 'Balıkesir RES', priority: 'Normal' },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ minHeight: 400 }}>
-      <HROpsWidget />
-      <MaintenanceCalendarWidget />
-      <CorrosionMapWidget />
+    <div className="space-y-4">
+      {/* İK notu */}
+      <div className="bg-blue-950/30 border border-blue-700/30 rounded-xl p-3 flex items-center gap-3">
+        <span className="text-blue-400 text-lg">ℹ️</span>
+        <p className="text-blue-300 text-xs">
+          Bakım Takvimi ve Korozyon Risk Haritası <span className="font-semibold">Operasyon (Telemetri)</span> ekranına taşındı.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ minHeight: 400 }}>
+        {/* İş Gücü & Maaş Dağılımı */}
+        <HROpsWidget />
+
+        {/* Vardiya Durumu */}
+        <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm h-full flex flex-col">
+          <h3 className="text-white font-bold text-sm mb-4">🕐 Vardiya Durumu</h3>
+          <div className="space-y-3 flex-1">
+            {shiftData.map(s => (
+              <div key={s.shift} className={`rounded-xl p-3 flex items-center justify-between border ${
+                s.active
+                  ? 'bg-green-900/20 border-green-700/30'
+                  : 'bg-gray-800/40 border-gray-700/30'
+              }`}>
+                <div>
+                  <p className="text-gray-200 text-xs font-semibold">{s.shift}</p>
+                  <p className="text-gray-500 text-xs mt-0.5">{s.staff} personel</p>
+                </div>
+                {s.active ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-900/50 border border-green-700/40 text-green-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                    Aktif
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-600 px-2 py-0.5 rounded-full bg-gray-800/60 border border-gray-700/30">Beklemede</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-gray-600 text-xs mt-3 pt-3 border-t border-gray-700/30">Toplam: 26 saha personeli</p>
+        </div>
+
+        {/* Açık Pozisyonlar */}
+        <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm h-full flex flex-col">
+          <h3 className="text-white font-bold text-sm mb-4">📋 Açık Pozisyonlar</h3>
+          <div className="space-y-3 flex-1">
+            {openPositions.map(p => (
+              <div key={p.title} className="bg-gray-800/40 rounded-xl p-3 border border-gray-700/30">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-gray-200 text-xs font-semibold leading-snug">{p.title}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                    p.priority === 'Acil'
+                      ? 'bg-red-900/50 border border-red-700/40 text-red-300'
+                      : 'bg-gray-700/50 border border-gray-600/30 text-gray-400'
+                  }`}>{p.priority}</span>
+                </div>
+                <p className="text-gray-600 text-xs mt-1">📍 {p.location}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-gray-600 text-xs mt-3 pt-3 border-t border-gray-700/30">
+            Toplam 3 açık pozisyon · İşe alım süreci devam ediyor
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1133,9 +1242,35 @@ function GelecekTab({ perms }) {
     return <AccessDenied message="Gelecek Yatırımlar modülü bu rolde gizlidir." />;
   }
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 400 }}>
-      <OffshoreROIWidget />
-      <BiodiversityScoreWidget />
+    <div className="space-y-4">
+      {/* Sadece yatırım, ROI ve deniz verisi — biyoçeşitlilik Surd tab'a taşındı */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 400 }}>
+        <OffshoreROIWidget />
+
+        {/* Offshore Planlama Özeti */}
+        <div className="bg-gray-900/80 border border-purple-500/20 rounded-2xl p-5 backdrop-blur-sm flex flex-col">
+          <h3 className="text-white font-bold text-sm mb-1">🌊 Çandarlı Offshore RES — Planlama</h3>
+          <p className="text-gray-500 text-xs mb-4">Proje varsayımı · Senaryo verisi</p>
+          <div className="grid grid-cols-2 gap-3 flex-1">
+            {[
+              { label: 'Planlanan Kapasite', value: '500 MW', color: 'text-purple-400' },
+              { label: 'Tahmini Devreye Alma', value: '2031', color: 'text-cyan-400' },
+              { label: 'Tahmini Yatırım', value: '~$2.1B', color: 'text-yellow-400' },
+              { label: 'Geri Ödeme Süresi', value: '~8 yıl', color: 'text-green-400' },
+              { label: 'Türbin Adedi', value: '~83 adet', color: 'text-blue-400' },
+              { label: 'Offshore Derinlik', value: '30–50 m', color: 'text-teal-400' },
+            ].map(m => (
+              <div key={m.label} className="bg-gray-800/40 border border-gray-700/30 rounded-xl p-3">
+                <p className="text-gray-500 text-xs mb-1">{m.label}</p>
+                <p className={`font-bold text-base ${m.color}`}>{m.value}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-gray-700 text-xs mt-4 pt-3 border-t border-gray-700/30">
+            🌱 Biyoçeşitlilik ve çevre etki analizi → Sürdürülebilirlik & Çevre ekranı
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
