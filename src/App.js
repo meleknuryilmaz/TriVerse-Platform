@@ -283,8 +283,27 @@ function PowerForecastWidget() {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.5} />
-            <XAxis dataKey="time" stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} interval={3} />
-            <YAxis stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} domain={[0, 'auto']} unit=" MW" />
+<XAxis
+  dataKey="isoTime"
+  stroke="#4b5563"
+  tick={{ fill: '#9ca3af', fontSize: 10 }}
+  interval={23}
+  minTickGap={30}
+  tickMargin={10}
+  tickLine={false}
+  tickFormatter={(value) => {
+    if (!value) return '';
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return '';
+
+    return date.toLocaleDateString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+  }}
+/>            <YAxis stroke="#4b5563" tick={{ fill: '#9ca3af', fontSize: 10 }} domain={[0, 'auto']} unit=" MW" />
             <Tooltip content={<ChartTooltip />} />
             <Legend
               wrapperStyle={{ paddingTop: 8 }}
@@ -1171,9 +1190,7 @@ function IKTab({ perms }) {
             <h2 className="text-white font-bold text-base flex items-center gap-2">
               👥 İK, Yetkinlik & Çalışan Güvenliği
             </h2>
-            <p className="text-gray-500 text-xs mt-1 max-w-xl">
-              Üçlü dönüşümün sosyal boyutu — yetkinlik, vardiya hazırlığı, çalışan memnuniyeti ve iş güvenliği
-            </p>
+            
           </div>
           <div className="flex gap-2 flex-shrink-0 flex-wrap">
             <span className="bg-yellow-900/30 border border-yellow-700/40 text-yellow-500 text-xs px-2 py-0.5 rounded-full">PoC Senaryo Verisi</span>

@@ -426,8 +426,7 @@ export function SafetyWelfareWidget() {
       <div className="mb-4 p-3 bg-blue-950/30 border border-blue-700/20 rounded-xl">
         <p className="text-blue-300 text-xs leading-relaxed">
           💡 Çalışan güvenliği, yetkinlik gelişimi ve memnuniyet göstergeleri{' '}
-          <span className="font-semibold text-blue-200">TriVerse sosyal dönüşüm boyutunu</span>{' '}
-          temsil eder. Bu veriler gerçek kurumsal veri değildir.
+          
         </p>
       </div>
 

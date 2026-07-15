@@ -225,6 +225,7 @@ export function hourlyToScadaLogs(hourly) {
     const timeStr = `${String(hour).padStart(2, '0')}:00`;
 
     return {
+      isoTime,
       time:      timeStr,
       actual:    power,      // 'Power Curve Tahmini'
       lstm:      scenario2,  // 'Open-Meteo Projeksiyon'
