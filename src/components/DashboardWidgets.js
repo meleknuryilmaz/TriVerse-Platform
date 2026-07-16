@@ -1,18 +1,18 @@
 import React from 'react';
 import {
-  Bar , Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart,
+  Bar, BarChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart,
   PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 
-// ─── 7 Günlük Kâr/Zarar Projeksiyonu ────────────────────────────
+// ─── 7 Günlük Kâr/Zarar Projeksiyonu & PTF ────────────────────────────
 const profitLossData = [
-  { day: 'Mon', AI_Forecast: 16000, OB_Forecast: 12000, NetAI: 16500 },
-  { day: 'Tue', AI_Forecast: 14000, OB_Forecast: 8000,  NetAI: 7000 },
-  { day: 'Wed', AI_Forecast: 21000, OB_Forecast: 10000, NetAI: 9500 },
-  { day: 'Thu', AI_Forecast: 21500, OB_Forecast: 12000, NetAI: 11000 },
-  { day: 'Fri', AI_Forecast: 18000, OB_Forecast: 11000, NetAI: 9000 },
-  { day: 'Sat', AI_Forecast: 11000, OB_Forecast: 0,     NetAI: 15000 },
-  { day: 'Sun', AI_Forecast: 10000, OB_Forecast: 6000,  NetAI: 18000 },
+  { day: 'Mon', AI_Forecast: 16000, OB_Forecast: 12000, NetAI: 16500, PTF: 2150 },
+  { day: 'Tue', AI_Forecast: 14000, OB_Forecast: 8000,  NetAI: 7000,  PTF: 2010 },
+  { day: 'Wed', AI_Forecast: 21000, OB_Forecast: 10000, NetAI: 9500,  PTF: 2340 },
+  { day: 'Thu', AI_Forecast: 21500, OB_Forecast: 12000, NetAI: 11000, PTF: 2450 },
+  { day: 'Fri', AI_Forecast: 18000, OB_Forecast: 11000, NetAI: 9000,  PTF: 2200 },
+  { day: 'Sat', AI_Forecast: 11000, OB_Forecast: 0,     NetAI: 15000, PTF: 1850 },
+  { day: 'Sun', AI_Forecast: 10000, OB_Forecast: 6000,  NetAI: 18000, PTF: 1700 },
 ];
 
 export function ProfitLossChartWidget() {
@@ -20,8 +20,8 @@ export function ProfitLossChartWidget() {
     <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm h-full flex flex-col">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-white font-bold text-sm">📈 7 Günlük Kâr/Zarar Projeksiyonu</h3>
-          <p className="text-gray-500 text-xs">AI vs OB Tahminleri (TL)</p>
+          <h3 className="text-white font-bold text-sm">📈 Kâr/Zarar & Piyasa Takas Fiyatı (PTF)</h3>
+          <p className="text-gray-500 text-xs">AI vs OB Tahminleri (TL) ve PTF (TL/MWh)</p>
         </div>
       </div>
       <div className="flex-1 min-h-[250px]">
@@ -29,15 +29,17 @@ export function ProfitLossChartWidget() {
           <ComposedChart data={profitLossData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
             <XAxis dataKey="day" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
+            <YAxis yAxisId="left" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
+            <YAxis yAxisId="right" orientation="right" stroke="#eab308" fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip
               contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
               itemStyle={{ color: '#e5e7eb' }}
             />
             <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-            <Bar dataKey="AI_Forecast" name="AI Forecast" fill="#38bdf8" radius={[4, 4, 0, 0]} barSize={15} />
-            <Bar dataKey="OB_Forecast" name="OB Forecast" fill="#a3e635" radius={[4, 4, 0, 0]} barSize={15} />
-            <Line type="monotone" dataKey="NetAI" name="NetAI Forecast" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#f43f5e', strokeWidth: 0 }} />
+            <Bar yAxisId="left" dataKey="AI_Forecast" name="AI Forecast" fill="#38bdf8" radius={[4, 4, 0, 0]} barSize={15} />
+            <Bar yAxisId="left" dataKey="OB_Forecast" name="OB Forecast" fill="#a3e635" radius={[4, 4, 0, 0]} barSize={15} />
+            <Line yAxisId="left" type="monotone" dataKey="NetAI" name="NetAI Forecast" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#f43f5e', strokeWidth: 0 }} />
+            <Line yAxisId="right" type="step" dataKey="PTF" name="PTF (TL/MWh)" stroke="#eab308" strokeWidth={2} strokeDasharray="5 5" dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -378,7 +380,7 @@ export function EmployeeSatisfactionWidget() {
         {satisfactionData.map(d => (
           <div key={d.label}>
             <div className="flex justify-between mb-1">
-              <span className="text-gray-400 text-xs">{d.label}</span>
+               <span className="text-gray-400 text-xs">{d.label}</span>
               <span className="text-xs font-bold" style={{ color: d.color }}>%{d.pct}</span>
             </div>
             <div className="bg-gray-700/60 rounded-full h-1.5">
@@ -396,6 +398,90 @@ export function EmployeeSatisfactionWidget() {
         <div className="flex justify-between">
           <span className="text-gray-600 text-xs">Katılım Oranı</span>
           <span className="text-cyan-400 text-xs font-semibold">%84</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 3A. Yaş Dağılımı ──────────────────────────────────────
+const ageDistributionData = [
+  { group: '18-25', count: 120 },
+  { group: '26-35', count: 450 },
+  { group: '36-45', count: 320 },
+  { group: '46-55', count: 180 },
+  { group: '55+',   count: 45  },
+];
+
+export function AgeDistributionWidget() {
+  return (
+    <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm h-full flex flex-col">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-white font-bold text-sm">🎂 Yaş Dağılımı</h3>
+          <p className="text-gray-500 text-xs mt-0.5">Personel demografisi</p>
+        </div>
+        <PoCBadge />
+      </div>
+      <div className="flex-1 min-h-[180px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={ageDistributionData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+            <XAxis dataKey="group" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
+            <Tooltip
+              cursor={{fill: 'rgba(255, 255, 255, 0.05)'}}
+              contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
+            />
+            <Bar dataKey="count" name="Kişi Sayısı" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={25} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ─── 3B. Maaş Dağılımı ──────────────────────────────────────
+const salaryData = [
+  { range: 'Asgari - 30K',  pct: 15, color: '#9ca3af' },
+  { range: '30K - 50K',     pct: 42, color: '#3b82f6' },
+  { range: '50K - 80K',     pct: 28, color: '#10b981' },
+  { range: '80K - 120K',    pct: 10, color: '#f59e0b' },
+  { range: '120K+',         pct: 5,  color: '#ec4899' },
+];
+
+export function SalaryDistributionWidget() {
+  return (
+    <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm h-full flex flex-col">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="text-white font-bold text-sm">💵 Maaş Dağılımı</h3>
+          <p className="text-gray-500 text-xs mt-0.5">Bant bazında personel yüzdesi</p>
+        </div>
+        <PoCBadge />
+      </div>
+
+      <div className="flex items-center gap-4 mb-2">
+        <div style={{ width: 80, height: 80 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={salaryData} cx="50%" cy="50%" innerRadius={25} outerRadius={40} paddingAngle={2} dataKey="pct" stroke="none">
+                {salaryData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+              </Pie>
+              <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', fontSize: '11px' }} formatter={(v) => [`%${v}`, 'Oran']} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="space-y-1.5 flex-1">
+          {salaryData.map(d => (
+            <div key={d.range} className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: d.color }} />
+                <span className="text-gray-400 text-[10px]">{d.range}</span>
+              </div>
+              <span className="font-bold text-[10px] text-white">%{d.pct}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

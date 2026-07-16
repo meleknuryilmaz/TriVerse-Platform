@@ -3,11 +3,11 @@ import { sendMessage, hasApiKey } from '../services/aiService';
 
 // ── Hızlı Soru Butonları ─────────────────────────────────────
 const QUICK_QUESTIONS = [
-  { text: 'Toplam kurulu güç nedir?', icon: '⚡' },
-  { text: 'Karbon hesabı nasıl yapılıyor?', icon: '🌿' },
-  { text: 'Fırtına senaryosu ne yapar?', icon: '🌪️' },
-  { text: 'Offshore projesi hakkında bilgi ver', icon: '🌊' },
-  { text: 'En büyük santral hangisi?', icon: '🏆' },
+  { text: 'Yeni batarya ve GES yatırımları nelerdir?', icon: '🔋' },
+  { text: 'Kanat çatlağı (YOLOv8) denetimi nasıl çalışıyor?', icon: '🦅' },
+  { text: 'TSRS ve Sürdürülebilirlik raporlaması yapıyor mu?', icon: '📄' },
+  { text: 'Piyasa takas fiyatı (PTF) nedir?', icon: '📈' },
+  { text: 'Offshore amortisman süresi ne kadar?', icon: '🌊' },
 ];
 
 // ── Mesaj Baloncuğu ─────────────────────────────────────────

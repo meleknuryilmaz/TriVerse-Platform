@@ -157,69 +157,49 @@ function smartFallback(message) {
   }
 
   // 2. Kurulu Güç ve Portföy Detayları
-  if (msg.includes('toplam') && (msg.includes('kapasite') || msg.includes('güç') || msg.includes('üretim') || msg.includes('mw'))) {
-    return `⚡ Enerjisa Üretim'in toplam kurulu gücü **${totalMW.toLocaleString('tr-TR')} MW**'tır. Bu portföyün **${resMW} MW**'ı rüzgar (RES), **${hesMW} MW**'ı hidroelektrik (HES) ve **${gesMW} MW**'ı güneş (GES) kaynaklıdır.`;
-  }
-
-  if (msg.includes('kaç santral') || msg.includes('santral sayısı') || msg.includes('kaç adet santral')) {
-    return `🏢 Enerjisa bünyesinde toplam **${ENERJISA_PLANTS.length} adet** santral bulunmaktadır. Bunların ${resPlants.length} adedi Rüzgar (RES), ${hesPlants.length} adedi Hidroelektrik (HES) ve ${gesPlants.length} adedi Güneş (GES) santralidir.`;
-  }
-
-  // 3. En Büyük Santraller ve Lokasyonlar
-  if (msg.includes('en büyük') || msg.includes('en çok') || msg.includes('en yüksek') || msg.includes('lider')) {
-    if (msg.includes('rüzgar') || msg.includes('res')) {
-      const sortedRes = [...resPlants].sort((a, b) => b.mw - a.mw);
-      return `💨 En büyük Rüzgar Santralimiz **${sortedRes[0].name}** RES'tir (${sortedRes[0].mw} MW, ${sortedRes[0].il}). Onu **${sortedRes[1].name}** RES (${sortedRes[1].mw} MW) takip eder.`;
+  if (msg.includes('toplam') || msg.includes('kapasite') || msg.includes('güç') || msg.includes('üretim') || msg.includes('mw')) {
+    if (!msg.includes('hesaplama') && !msg.includes('nasıl')) {
+      return `⚡ Enerjisa Üretim'in toplam kurulu gücü **${totalMW.toLocaleString('tr-TR')} MW**'tır. Bu portföyün **${resMW} MW**'ı rüzgar (RES), **${hesMW} MW**'ı hidroelektrik (HES) ve **${gesMW} MW**'ı güneş (GES) kaynaklıdır.`;
     }
-    return `🏆 Enerjisa portföyündeki en yüksek kapasiteli aktif santral **${topPlant.name}** santralidir (${topPlant.mw} MW, ${topPlant.il}).`;
   }
 
-  if (msg.includes('nerede') || msg.includes('hangi illerde') || msg.includes('lokasyon') || msg.includes('konum')) {
-    const provinces = [...new Set(ENERJISA_PLANTS.map(p => p.il))].slice(0, 8).join(', ');
-    return `📍 Santrallerimiz Türkiye geneline yayılmıştır. Başta **${provinces}** olmak üzere birçok ilde aktif tesislerimiz bulunmaktadır.`;
+  // 3. Batarya ve Yeni Yatırımlar (Yeni eklendi)
+  if (msg.includes('batarya') || msg.includes('depolama') || msg.includes('yeni yatırım') || msg.includes('gelecek') || msg.includes('polatlı') || msg.includes('mihalıççık')) {
+    return `🔋 **Güneş ve Batarya Yatırımlarımız:**\n\nBandırma Enerji Üssü'nde 2 MW kapasiteli **Bandırma BESS** aktif olarak şebeke dengelemesi yapmaktadır. Ayrıca Ankara **Polatlı (25 MW)** ve Eskişehir **Mihalıççık Seki (25 MW)** projeleri önlisans ve ÇED aşamasında olup, 2027 sonuna kadar devreye alınmaları planlanmaktadır.`;
   }
 
   // 4. Fırtına ve Otonom Karar Senaryosu
   if (msg.includes('fırtına') || msg.includes('storm') || msg.includes('alarm') || msg.includes('hız sınırı')) {
-    return `🌪️ Fırtına hızı **25 m/s** (90 km/s) limitini aştığında sistem otonom olarak koruma moduna geçer:\n\n1️⃣ **Mühendislik:** Türbin kanatları rüzgara paralel konuma getirilir (Pitch Control) ve mekanik disk frenler kilitlenir.\n2️⃣ **Lojistik:** AI dalga/rüzgar tahminine göre güvenli bakım saati (Hava Penceresi) çıkarır.\n3️⃣ **Finansal:** VPP (Sanal Güç Santrali) devreye girerek rüzgar açığını barajlı HES'lerden dengeler.`;
+    return `🌪️ Fırtına hızı **25 m/s** (90 km/s) limitini aştığında sistem otonom olarak koruma moduna geçer:\n\n1️⃣ **Mühendislik:** Türbin kanatları rüzgara paralel konuma getirilir.\n2️⃣ **Lojistik:** AI güvenli bakım saati çıkarır.\n3️⃣ **Finansal:** VPP (Sanal Güç Santrali) devreye girerek rüzgar açığını HES'lerden dengeler.`;
   }
 
-  // 5. Karbon Hesaplamaları ve Emisyon
-  if (msg.includes('karbon') || msg.includes('co2') || msg.includes('emisyon') || msg.includes('tasarruf') || msg.includes('kredi')) {
-    return `🌿 **Karbon Hesaplama Metodolojimiz:**\n\n- **Şebeke Azaltımı:** Ürettiğimiz her 1 MWh yenilenebilir enerji için Türkiye Şebeke Emisyon Faktörü olan **0.45 ton CO₂** tasarruf hesaplanır.\n- **Yeşil Gelir:** Tasarruf edilen karbon sertifikalandırılarak Gold Standard üzerinden **$4.0 / ton CO₂** ve I-REC üzerinden **$1.5 / MWh** oranında paraya dönüştürülür.`;
+  // 5. PTF (Piyasa Takas Fiyatı) ve Finans
+  if (msg.includes('ptf') || msg.includes('piyasa') || msg.includes('takas') || msg.includes('fiyat')) {
+    return `📈 **Piyasa Takas Fiyatı (PTF):**\n\nEPİAŞ (Elektrik Piyasaları İşletme A.Ş.) üzerinden belirlenen anlık saatlik elektrik fiyatıdır. Platformumuzda AI destekli üretim tahminleri, PTF ile çarpılarak şirketin o saatteki net kâr/zarar projeksiyonu otomatik hesaplanır.`;
   }
 
-  // 6. Finans, ROI ve TSRS Raporlama
-  if (msg.includes('tsrs') || msg.includes('csrd') || msg.includes('rapor') || msg.includes('standart') || msg.includes('tfrs')) {
-    return `📊 **Sürdürülebilirlik Uyum Modülü:**\n\nPlatformumuz KGK (Kamu Gözetimi Kurumu) standartlarına ve **TFRS S2 / IFRS S2** (Uluslararası Finansal Raporlama Standartları) ile Avrupa **CSRD** direktiflerine tam uyumludur. Kapsam 1 (Lojistik) ve Kapsam 2 (İç tüketim) emisyonlarını otomatik raporlar.`;
+  // 6. Finans, ROI ve Offshore
+  if (msg.includes('offshore') || msg.includes('denizüstü') || msg.includes('amortisman') || msg.includes('roi') || msg.includes('yatırım')) {
+    return `🌊 **Offshore (Denizüstü) Yatırım Analizi:**\n\nÇandarlı Offshore (500 MW) projemizin tahmini yatırım maliyeti (CAPEX) yaklaşık $2.1B olarak öngörülmektedir. I-REC ve Karbon kredisi teşvikleriyle birleştiğinde yatırımın geri dönüş süresi (ROI) **yaklaşık 8 yıl** olarak hesaplanmıştır.`;
   }
 
-  if (msg.includes('amortisman') || msg.includes('roi') || msg.includes('finans') || msg.includes('kazanç') || msg.includes('maliyet') || msg.includes('yatırım')) {
-    return `💰 **Offshore (Denizüstü) Yatırım Analizi:**\n\nÇandarlı Offshore projemizin toplam yatırım maliyeti (CAPEX) yaklaşık $350M olarak öngörülmektedir. I-REC ve Karbon kredisi teşvikleriyle birleştiğinde yatırımın geri dönüş süresi (ROI) **6.8 yıl** olarak hesaplanmıştır. Net Bugünkü Değer (NPV) ise $120M+ seviyesindedir.`;
+  // 7. TSRS, Sürdürülebilirlik ve Karbon
+  if (msg.includes('tsrs') || msg.includes('csrd') || msg.includes('rapor') || msg.includes('sürdürülebilirlik') || msg.includes('karbon') || msg.includes('emisyon')) {
+    return `📄 **Sürdürülebilirlik & TSRS:**\n\nPlatformumuz KGK standartlarına ve **TFRS S2 / IFRS S2** (Uluslararası Finansal Raporlama Standartları) ile Avrupa **CSRD** direktiflerine tam uyumludur. Karbon tasarrufu hesaplanarak Kapsam 1 ve 2 emisyonları için resmi dijital rapor oluşturur.`;
   }
 
-  // 7. Teknik Türbin Özellikleri
-  if (msg.includes('türbin') || msg.includes('pervane') || msg.includes('kanat') || msg.includes('boyut') || msg.includes('yükseklik')) {
-    return `📐 **Offshore Türbin Mühendislik Detayları:**\n\n- **Güç:** 8 MW nominal offshore güç kapasitesi.\n- **Rotor Çapı:** 164 metre (Kanat uzunluğu 80 metre).\n- **Göbek Yüksekliği (Hub Height):** Deniz seviyesinden 105 metre yükseklik.\n- **Çalışma Aralığı:** 3 m/s (cut-in) ile 25 m/s (cut-out) rüzgar hızları arası.`;
+  // 8. YOLOv8 ve Drone Denetimi (Kanat Çatlağı)
+  if (msg.includes('yolo') || msg.includes('drone') || msg.includes('iha') || msg.includes('çatlak') || msg.includes('hasar') || msg.includes('kanat') || msg.includes('denetim')) {
+    return `🦅 **YOLOv8 Drone ile Kanat Denetimi:**\n\nOtonom uçuş yapan İHA'ların çektiği yüksek çözünürlüklü ve termal görüntüler, entegre YOLOv8 yapay zeka modelimizle taranır. Kanatlardaki kılcal çatlaklar ve korozyonlar tespit edilerek İK operasyon/bakım takvimine doğrudan işlenir.`;
   }
 
-  // 8. YOLOv8 ve Drone Denetimi
-  if (msg.includes('yolo') || msg.includes('drone') || msg.includes('iha') || msg.includes('çatlak') || msg.includes('hasar') || msg.includes('kamera')) {
-    return `🦅 **YOLOv8 Drone ile Kanat Denetimi:**\n\nOtonom uçuş yapan İHA'ların çektiği 4K termal görüntüler YOLOv8 nesne tespit modelimizle taranır. Kanatlardaki kılcal çatlaklar, korozyon ve yıldırım hasarları **%94 doğruluk oranıyla** tespit edilerek saha mühendislerine prediktif bakım emri gönderilir.`;
-  }
-
-  // 9. İK, Bakım ve Operasyon
-  if (msg.includes('bakım') || msg.includes('personel') || msg.includes('teknisyen') || msg.includes('ik') || msg.includes('eleman') || msg.includes('vardiya')) {
-    return `👨‍🔧 **Saha Operasyon Bilgileri:**\n\nSistemde aktif **48 sertifikalı teknisyen** tanımlıdır. Bakım ekipleri fırtına durumunda otomatik koruma vardiyasına geçirilir. Korozyon ve kanat çatlağı tespit edilen türbinler (Örn: WTG-04) öncelikli olarak bakım takvimine otomatik atanır.`;
-  }
-
-  // 10. Biyoçeşitlilik ve Yapay Resifler
-  if (msg.includes('kuş') || msg.includes('balık') || msg.includes('resif') || msg.includes('habitat') || msg.includes('biyo')) {
-    return `🌿 **Ekolojik Koruma Politikamız:**\n\n- **Smart Curtailment:** YOLOv8 kuş sürüsü tespit ettiğinde türbin dönüş hızını otomatik olarak 2 RPM altına düşürür. Kuş ölümleri %85 azaldı.\n- **Yapay Resif Projesi:** Denizüstü temellerinin etrafına yerleştirilen yapay resifler sayesinde bölgedeki biyoçeşitlilik indeksi (Shannon) %18 oranında artmıştır.`;
+  // 9. İK, Maaş, Yaş Dağılımı ve Operasyon
+  if (msg.includes('ik') || msg.includes('personel') || msg.includes('yaş') || msg.includes('maaş') || msg.includes('memnuniyet') || msg.includes('operasyon')) {
+    return `👨‍🔧 **İK & Operasyon Verileri:**\n\nSistemimiz sahadaki personelin yaş dağılımını, yetkinlik/sertifika durumlarını (GWO vb.) ve vardiya hazırlığını gerçek zamanlı takip eder. Ayrıca maaş dilimleri ve çalışan memnuniyet anketleri üzerinden şirketin iç dinamikleri görselleştirilir.`;
   }
 
   // Genel fallback
-  return `📋 Sorunuzu lokal veri tabanımda tam eşleştiremedim. Bu konuda daha detaylı bilgi için ekibimizle çalışmamız gerekmektedir. Şu anahtar kelimelerle ilgili sorular sorabilirsiniz:\n\n• **Santral Güçleri:** "toplam güç", "en büyük santral", "kaç adet santral var"\n• **Fırtına:** "fırtına senaryosu nedir", "hız sınırı kaç"\n• **Finans & Karbon:** "karbon hesabı", "tsrs standardı", "amortisman süresi"\n• **Mühendislik:** "türbin boyutları", "yolo drone denetimi", "personel ve bakım"`;
+  return `📋 Sorunuzu lokal veri tabanımda tam eşleştiremedim. Şu konuları sorabilirsiniz:\n\n• **Batarya:** "Yeni batarya yatırımları nelerdir?"\n• **Yapay Zeka:** "Kanat çatlağı tespiti nasıl yapılıyor?"\n• **Finans & Rapor:** "TSRS nedir?", "PTF ne demek?"\n• **Proje:** "Offshore yatırım amortisman süresi nedir?"`;
 }
 
 // ── Ana Export: Mesaj Gönder ─────────────────────────────────

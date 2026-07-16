@@ -185,6 +185,12 @@ function PlantWeatherPopup({ plant, cfg }) {
         </span>
       </div>
 
+      {plant.desc && (
+        <div style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.5, marginBottom: 8, fontStyle: 'italic', background: '#111827', padding: '6px', borderRadius: '6px', border: '1px solid #1f2937' }}>
+          {plant.desc}
+        </div>
+      )}
+
       {/* ── Ayırıcı ── */}
       <div style={{ borderTop: '1px solid #374151', marginBottom: 8 }} />
 

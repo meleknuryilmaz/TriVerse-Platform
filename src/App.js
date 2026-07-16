@@ -35,6 +35,7 @@ import {
   OffshoreROIWidget, BiodiversityScoreWidget,
   PersonnelCompetencyWidget, ShiftReadinessWidget,
   EmployeeSatisfactionWidget, SafetyWelfareWidget,
+  AgeDistributionWidget, SalaryDistributionWidget, CorrosionMapWidget
 } from './components/DashboardWidgets';
 
 import ChatbotWidget from './components/ChatbotWidget';
@@ -1200,10 +1201,17 @@ function IKTab({ perms }) {
       </div>
 
       {/* Üst satır — 3 kolon */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ minHeight: 520 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ minHeight: 400 }}>
         <PersonnelCompetencyWidget />
         <ShiftReadinessWidget />
         <EmployeeSatisfactionWidget />
+      </div>
+
+      {/* Orta satır — Yaş, Maaş ve Korozyon (Sürdürülebilirlik'ten taşınan kanat çatlağı) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ minHeight: 300 }}>
+        <AgeDistributionWidget />
+        <SalaryDistributionWidget />
+        <CorrosionMapWidget />
       </div>
 
       {/* Alt satır — tam genişlik */}
@@ -1245,6 +1253,35 @@ function GelecekTab({ perms }) {
           </div>
           <p className="text-gray-700 text-xs mt-4 pt-3 border-t border-gray-700/30">
             🌱 Biyoçeşitlilik ve çevre etki analizi → Sürdürülebilirlik & Çevre ekranı
+          </p>
+        </div>
+      </div>
+
+      {/* Batarya ve GES Planlama Özeti */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-gray-900/80 border border-orange-500/20 rounded-2xl p-5 backdrop-blur-sm flex flex-col">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-white font-bold text-sm mb-1">🔋 Güneş (GES) ve Batarya Depolama Yatırımları — Planlama</h3>
+              <p className="text-gray-500 text-xs">Mihalıççık Seki & Polatlı Depolamalı GES Projeleri</p>
+            </div>
+            <span className="bg-orange-900/30 border border-orange-700/40 text-orange-400 text-xs px-2 py-0.5 rounded-full">Gerçek Proje Verisi</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Toplam Kapasite (GES)', value: '50 MW', color: 'text-orange-400' },
+              { label: 'Depolama Kapasitesi', value: '50 MWh', color: 'text-pink-400' },
+              { label: 'Tahmini Devreye Alma', value: '2027 Sonu', color: 'text-cyan-400' },
+              { label: 'Durum', value: 'Önlisans / ÇED', color: 'text-yellow-400' },
+            ].map(m => (
+              <div key={m.label} className="bg-gray-800/40 border border-gray-700/30 rounded-xl p-3">
+                <p className="text-gray-500 text-xs mb-1">{m.label}</p>
+                <p className={`font-bold text-base ${m.color}`}>{m.value}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-gray-700 text-xs mt-4 pt-3 border-t border-gray-700/30">
+            ☀️ Bandırma BESS (2MW) aktif olarak devrede olup, ticari dengeleme sistemine hizmet vermektedir. Polatlı ve Mihalıççık sahaları geliştirme aşamasındadır.
           </p>
         </div>
       </div>
