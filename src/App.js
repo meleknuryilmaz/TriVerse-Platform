@@ -31,7 +31,7 @@ import PlantMapWidget    from './components/PlantMapWidget';
 import StormControlWidget from './components/StormControlWidget';
 import RecommendationPanel from './components/RecommendationPanel';
 import {
-  ProfitLossChartWidget, MaintenanceCalendarWidget, CorrosionMapWidget,
+  ProfitLossChartWidget,
   OffshoreROIWidget, BiodiversityScoreWidget,
   PersonnelCompetencyWidget, ShiftReadinessWidget,
   EmployeeSatisfactionWidget, SafetyWelfareWidget,

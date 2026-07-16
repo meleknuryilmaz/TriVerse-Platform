@@ -51,7 +51,6 @@ export function generateOperationalRecommendations({
   const precip    = currentWeather?.precipitation  ?? 0;
   const temp      = currentWeather?.temperature    ?? 20;
   const waveH     = marineData?.waveHeight         ?? 0;
-  const waveDir   = marineData?.waveDirection      ?? null;
   const ghi       = currentWeather?.ghi            ?? 0;
 
   // ── KURAL 1: Cut-out eşiği ─────────────────────────────────

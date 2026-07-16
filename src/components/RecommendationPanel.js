@@ -144,14 +144,7 @@ export default function RecommendationPanel({ currentWeather, hourlyForecast, ma
 
     setRecommendations(recs);
     setLastGenerated(new Date());
-  }, [
-    currentWeather?.windSpeed,
-    currentWeather?.windGusts,
-    currentWeather?.precipitation,
-    currentWeather?.ghi,
-    currentWeather?.relativeHumidity,
-    marineData?.waveHeight,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentWeather, hourlyForecast, marineData]);
 
   const criticalCount = recommendations.filter(r => r.severity === 'critical').length;
   const warningCount  = recommendations.filter(r => r.severity === 'warning').length;
