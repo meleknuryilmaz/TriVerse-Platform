@@ -146,7 +146,6 @@ function smartFallback(message) {
   const hesMW = hesPlants.reduce((s, p) => s + p.mw, 0);
   const gesPlants = ENERJISA_PLANTS.filter(p => p.type === 'GES');
   const gesMW = gesPlants.reduce((s, p) => s + p.mw, 0);
-  const topPlant = ENERJISA_PLANTS.filter(p => p.status === 'active').sort((a, b) => b.mw - a.mw)[0];
 
   // 1. Selamlaşma ve Kimlik
   if (msg.includes('merhaba') || msg.includes('selam') || msg.includes('hey') || msg.includes('nasıl')) {
