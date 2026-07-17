@@ -3,9 +3,9 @@ import { sendMessage, hasApiKey } from '../services/aiService';
 
 // ── Hızlı Soru Butonları ─────────────────────────────────────
 const QUICK_QUESTIONS = [
+  { text: 'Bütçenin altında kalınacak günler hangileri?', icon: '📉' },
   { text: 'Yeni batarya ve GES yatırımları nelerdir?', icon: '🔋' },
   { text: 'Kanat çatlağı (YOLOv8) denetimi nasıl çalışıyor?', icon: '🦅' },
-  { text: 'TSRS ve Sürdürülebilirlik raporlaması yapıyor mu?', icon: '📄' },
   { text: 'Piyasa takas fiyatı (PTF) nedir?', icon: '📈' },
   { text: 'Offshore amortisman süresi ne kadar?', icon: '🌊' },
 ];

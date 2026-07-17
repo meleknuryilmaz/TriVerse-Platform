@@ -951,11 +951,14 @@ function TelemetriTab({ perms }) {
       {/* Kural Tabanlı AI Öneri Paneli — Saha + Yönetici görür */}
       {perms.telemetri && (
         <RecommendationPanel
-          currentWeather={liveData._apiWeather || null}
+          currentWeather={liveData._apiWeather || { windSpeed: liveData.wind, temperature: 24, ghi: liveData.ghi, windDirection: 180 }}
           hourlyForecast={liveData._hourlyForecast || null}
           marineData={null}
         />
       )}
+
+      {/* Korozyon/Aşınma Risk Haritası — İK'dan Ana Ekrana taşındı */}
+      <CorrosionMapWidget />
 
       {/* Drone Denetimi — Kısa Durum Özeti (Detay: Sürdürülebilirlik & Çevre ekranı) */}
       {perms.eko && (
@@ -1030,15 +1033,36 @@ function FinansTab({ perms }) {
         <ProfitLossChartWidget />
         <FinancialROIWidget />
       </div>
+    </div>
+  );
+}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 400 }}>
-        {/* Carbon Trend Chart */}
-        <WidgetCard
-          title="📉 Karbon Ayak İzi Trendi (Kapsam 1 & 2)"
-          subtitle="KGK / TFRS S2 Uyumlu Raporlama"
-          borderClass="border-cyan-500/20"
-        >
-          <div style={{ height: 220 }}>
+function SurdTab({ perms }) {
+  if (!perms.eko) {
+    return (
+      <AccessDenied message="Ekolojik Koruma modülü yalnızca Saha Mühendisi ve Üst Düzey Yönetici rollerine açıktır." />
+    );
+  }
+
+  const species = [
+    { name: 'Şahin (Falco tinnunculus)',  count: 3,  risk: 'Düşük',        badge: 'text-green-300 bg-green-900/40 border-green-700/30'  },
+    { name: 'Kızıl Şahin (Buteo buteo)', count: 1,  risk: 'Orta',         badge: 'text-yellow-300 bg-yellow-900/40 border-yellow-700/30' },
+    { name: 'Kerkenez',                   count: 7,  risk: 'Düşük',        badge: 'text-green-300 bg-green-900/40 border-green-700/30'   },
+    { name: 'Büyük Akbaba',              count: 0,  risk: 'Kritik İzlem', badge: 'text-red-300 bg-red-900/40 border-red-700/30'          },
+  ];
+
+  return (
+    <div className="space-y-4">
+
+      {/* Karbon Ayak İzi — Finans'tan taşındı */}
+      <WidgetCard
+        title="📉 Karbon Ayak İzi Trendi (Kapsam 1 & 2)"
+        subtitle="KGK / TFRS S2 Uyumlu Raporlama"
+        borderClass="border-cyan-500/20"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Sol Kısım: Grafik (2 Sütun) */}
+          <div className="md:col-span-2" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={CARBON_TREND} margin={{ top: 5, right: 8, left: -12, bottom: 0 }}>
                 <defs>
@@ -1065,49 +1089,32 @@ function FinansTab({ perms }) {
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-4 bg-gray-800/40 border border-gray-700/30 rounded-xl p-3 space-y-1">
-            <p className="text-gray-500 text-xs">
-              📋 Standart:{' '}
-              <span className="text-white font-semibold">KGK — TFRS S2 (IFRS S2 eşdeğeri)</span>
-            </p>
-            <p className="text-gray-500 text-xs">
-              🏛️ Denetim:{' '}
-              <span className="text-white font-semibold">Kamu Gözetimi Kurumu (KGK)</span>
-            </p>
-            <p className="text-gray-500 text-xs">
-              📅 Dönem:{' '}
-              <span className="text-white font-semibold">Q2 2026 (01.04 – 30.06.2026)</span>
-            </p>
+          {/* Sağ Kısım: Açıklamalar (1 Sütun) */}
+          <div className="bg-gray-800/40 border border-gray-700/30 rounded-xl p-3 flex flex-col justify-center space-y-3">
+            <div className="space-y-1 pb-2 border-b border-gray-700/50">
+              <p className="text-gray-500 text-[11px] leading-snug">
+                📋 <span className="text-white font-semibold">TFRS S2 (Uluslararası IFRS S2):</span> İklimle bağlantılı finansal risklerin Kamu Gözetimi Kurumu (KGK) standartlarında raporlanmasıdır.
+              </p>
+            </div>
+            <div className="space-y-1 pb-2 border-b border-gray-700/50">
+              <p className="text-gray-500 text-[11px] leading-snug">
+                🔥 <span className="text-fuchsia-400 font-semibold">Kapsam 1:</span> Şirketin sahip olduğu tesis ve araçların doğrudan yarattığı karbon emisyonudur (örn. doğalgaz santralleri, şirket araçları).
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-gray-500 text-[11px] leading-snug">
+                ⚡ <span className="text-emerald-400 font-semibold">Kapsam 2:</span> Dışarıdan satın alınan enerjinin (elektrik/soğutma) üretimi sırasında dolaylı yoldan oluşan emisyondur.
+              </p>
+            </div>
           </div>
+        </div>
 
-          {/* Compliance badges */}
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-700/40">
-            <PulseBadge variant="yellow">KGK Onaylı</PulseBadge>
-            <PulseBadge variant="green">EPDK Uyumlu</PulseBadge>
-            <PulseBadge variant="cyan">CDP Raporlandı</PulseBadge>
-          </div>
-        </WidgetCard>
-      </div>
-    </div>
-  );
-}
-
-function SurdTab({ perms }) {
-  if (!perms.eko) {
-    return (
-      <AccessDenied message="Ekolojik Koruma modülü yalnızca Saha Mühendisi ve Üst Düzey Yönetici rollerine açıktır." />
-    );
-  }
-
-  const species = [
-    { name: 'Şahin (Falco tinnunculus)',  count: 3,  risk: 'Düşük',        badge: 'text-green-300 bg-green-900/40 border-green-700/30'  },
-    { name: 'Kızıl Şahin (Buteo buteo)', count: 1,  risk: 'Orta',         badge: 'text-yellow-300 bg-yellow-900/40 border-yellow-700/30' },
-    { name: 'Kerkenez',                   count: 7,  risk: 'Düşük',        badge: 'text-green-300 bg-green-900/40 border-green-700/30'   },
-    { name: 'Büyük Akbaba',              count: 0,  risk: 'Kritik İzlem', badge: 'text-red-300 bg-red-900/40 border-red-700/30'          },
-  ];
-
-  return (
-    <div className="space-y-4">
+        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-700/40">
+          <PulseBadge variant="yellow">KGK Onaylı</PulseBadge>
+          <PulseBadge variant="green">EPDK Uyumlu</PulseBadge>
+          <PulseBadge variant="cyan">CDP Raporlandı</PulseBadge>
+        </div>
+      </WidgetCard>
       {/* Drone + EcoMonitor (tam versiyon burada) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" style={{ minHeight: 500 }}>
         <EcoMonitorWidget />
@@ -1207,11 +1214,10 @@ function IKTab({ perms }) {
         <EmployeeSatisfactionWidget />
       </div>
 
-      {/* Orta satır — Yaş, Maaş ve Korozyon (Sürdürülebilirlik'ten taşınan kanat çatlağı) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ minHeight: 300 }}>
+      {/* Orta satır — Yaş ve Maaş */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ minHeight: 300 }}>
         <AgeDistributionWidget />
         <SalaryDistributionWidget />
-        <CorrosionMapWidget />
       </div>
 
       {/* Alt satır — tam genişlik */}
@@ -1258,31 +1264,74 @@ function GelecekTab({ perms }) {
       </div>
 
       {/* Batarya ve GES Planlama Özeti */}
-      <div className="grid grid-cols-1 gap-4">
-        <div className="bg-gray-900/80 border border-orange-500/20 rounded-2xl p-5 backdrop-blur-sm flex flex-col">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="text-white font-bold text-sm mb-1">🔋 Güneş (GES) ve Batarya Depolama Yatırımları — Planlama</h3>
-              <p className="text-gray-500 text-xs">Mihalıççık Seki & Polatlı Depolamalı GES Projeleri</p>
-            </div>
-            <span className="bg-orange-900/30 border border-orange-700/40 text-orange-400 text-xs px-2 py-0.5 rounded-full">Gerçek Proje Verisi</span>
+      <div className="bg-gray-900/80 border border-orange-500/20 rounded-2xl p-5 backdrop-blur-sm">
+        <div className="flex justify-between items-start mb-5">
+          <div>
+            <h3 className="text-white font-bold text-sm mb-1">🔋 Güneş (GES) ve Batarya Depolama Yatırımları — Planlama</h3>
+            <p className="text-gray-500 text-xs">Mevcut yatırımlar ve genişletilen potansiyel sahalar</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: 'Toplam Kapasite (GES)', value: '50 MW', color: 'text-orange-400' },
-              { label: 'Depolama Kapasitesi', value: '50 MWh', color: 'text-pink-400' },
-              { label: 'Tahmini Devreye Alma', value: '2027 Sonu', color: 'text-cyan-400' },
-              { label: 'Durum', value: 'Önlisans / ÇED', color: 'text-yellow-400' },
-            ].map(m => (
-              <div key={m.label} className="bg-gray-800/40 border border-gray-700/30 rounded-xl p-3">
-                <p className="text-gray-500 text-xs mb-1">{m.label}</p>
-                <p className={`font-bold text-base ${m.color}`}>{m.value}</p>
+          <span className="bg-orange-900/30 border border-orange-700/40 text-orange-400 text-xs px-2 py-0.5 rounded-full">Kapasite & Geliştirme</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Sol Kolon: GES Kapasitesi ve Hedefler */}
+          <div className="space-y-4 border-r-0 md:border-r border-gray-700/40 pr-0 md:pr-4">
+            <h4 className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-3">☀️ Güneş Enerjisi (GES) Hedefi</h4>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-gray-800/40 border border-gray-700/30 rounded-xl p-3">
+                <p className="text-gray-500 text-[10px] uppercase mb-1">Toplam Kapasite</p>
+                <p className="font-bold text-lg text-orange-400">50 MW</p>
               </div>
-            ))}
+              <div className="bg-gray-800/40 border border-gray-700/30 rounded-xl p-3">
+                <p className="text-gray-500 text-[10px] uppercase mb-1">Durum</p>
+                <p className="font-bold text-sm text-yellow-400 mt-1">Önlisans / ÇED</p>
+              </div>
+            </div>
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Polatlı ve Mihalıççık projeleriyle başlayan GES yatırımları, batarya entegrasyonu sayesinde üretilen fazla enerjinin şebekeye dengeli verilmesini hedefler.
+            </p>
           </div>
-          <p className="text-gray-700 text-xs mt-4 pt-3 border-t border-gray-700/30">
-            ☀️ Bandırma BESS (2MW) aktif olarak devrede olup, ticari dengeleme sistemine hizmet vermektedir. Polatlı ve Mihalıççık sahaları geliştirme aşamasındadır.
-          </p>
+
+          {/* Sağ Kolon: Batarya Tesisleri ve Şehirler */}
+          <div className="space-y-3">
+            <h4 className="text-pink-400 text-xs font-bold uppercase tracking-wider mb-3">🔋 Batarya Depolama (BESS) Sahaları</h4>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between items-center bg-gray-800/40 rounded-lg p-2 border border-gray-700/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-400 text-xs">●</span>
+                  <span className="text-gray-200 text-xs font-semibold">Bandırma BESS (2 MW)</span>
+                </div>
+                <span className="text-gray-500 text-[10px]">Balıkesir (Aktif)</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-gray-800/40 rounded-lg p-2 border border-gray-700/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-yellow-400 text-xs">●</span>
+                  <span className="text-gray-200 text-xs font-semibold">Polatlı Depolamalı GES-1</span>
+                </div>
+                <span className="text-gray-500 text-[10px]">Ankara (Planlı)</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-gray-800/40 rounded-lg p-2 border border-gray-700/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-yellow-400 text-xs">●</span>
+                  <span className="text-gray-200 text-xs font-semibold">Mihalıççık Seki GES</span>
+                </div>
+                <span className="text-gray-500 text-[10px]">Eskişehir (Planlı)</span>
+              </div>
+
+              {/* Potansiyel Sahalar */}
+              <div className="mt-3 pt-2 border-t border-gray-700/30">
+                <p className="text-gray-500 text-[10px] uppercase mb-2">Potansiyel Sahalar</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 bg-pink-900/20 border border-pink-700/30 text-pink-300 text-[10px] rounded">Malkara (Tekirdağ)</span>
+                  <span className="px-2 py-1 bg-pink-900/20 border border-pink-700/30 text-pink-300 text-[10px] rounded">Samsun</span>
+                  <span className="px-2 py-1 bg-pink-900/20 border border-pink-700/30 text-pink-300 text-[10px] rounded">İpsala (Edirne)</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

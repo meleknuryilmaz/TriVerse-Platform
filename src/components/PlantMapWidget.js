@@ -89,6 +89,16 @@ function createPlantIcon(type, status, size = 28) {
         </svg>
       `;
       break;
+    case 'Batarya':
+      bgColor = isPlanned ? '#be185d' : '#f472b6'; // Aktif olanlar daha açık pembe, planlılar koyu
+      svgContent = `
+        <svg width="65%" height="65%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="6" width="14" height="15" rx="2" stroke="white" stroke-width="2.5" />
+          <path d="M9 3H15V6H9V3Z" fill="white" />
+          <path d="M12 10V17M9 13.5H15" stroke="white" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      `;
+      break;
     default: // Termik / Linyit / Diğer (Gri)
       bgColor = '#6b7280';
       svgContent = `

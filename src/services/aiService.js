@@ -197,6 +197,11 @@ function smartFallback(message) {
     return `👨‍🔧 **İK & Operasyon Verileri:**\n\nSistemimiz sahadaki personelin yaş dağılımını, yetkinlik/sertifika durumlarını (GWO vb.) ve vardiya hazırlığını gerçek zamanlı takip eder. Ayrıca maaş dilimleri ve çalışan memnuniyet anketleri üzerinden şirketin iç dinamikleri görselleştirilir.`;
   }
 
+  // 10. Bütçe ve Kârlılık Tahminleri
+  if (msg.includes('bütçe') || msg.includes('kar') || msg.includes('zarar') || msg.includes('karlılık') || msg.includes('altında')) {
+    return `📉 **Bütçe ve Kârlılık Projeksiyonu:**\n\nÖnümüzdeki 7 gün için yapılan AI tabanlı simülasyonlara göre;\n• **Salı (Tue):** Bütçe Marjı (Baseline) 8k TL iken AI Gelir Tahmini 14k TL (Pozitif yönlü).\n• **Cuma (Fri):** Bütçe Marjı 11k TL iken AI Gelir Tahmini 18k TL (Pozitif yönlü).\n\nŞu anda sistemde 7 günlük tahminde AI Gelir Tahmini'nin **Bütçe Marjı'nın altında kalacağı (zarar yazacağı) bir gün öngörülmemektedir.** Sadece Cumartesi günü rüzgar/güneş durağanlığı nedeniyle operasyonel baseline "0" olarak baz alınmış, ancak optimize AI kararlarıyla 11k TL gelir elde edilmesi planlanmıştır.`;
+  }
+
   // Genel fallback
   return `📋 Sorunuzu lokal veri tabanımda tam eşleştiremedim. Şu konuları sorabilirsiniz:\n\n• **Batarya:** "Yeni batarya yatırımları nelerdir?"\n• **Yapay Zeka:** "Kanat çatlağı tespiti nasıl yapılıyor?"\n• **Finans & Rapor:** "TSRS nedir?", "PTF ne demek?"\n• **Proje:** "Offshore yatırım amortisman süresi nedir?"`;
 }

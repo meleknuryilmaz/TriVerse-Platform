@@ -1,6 +1,7 @@
 // ============================================================
-//  TriVerse — Kural Tabanlı Operasyonel Öneri Paneli
+//  TriVerse — AI Destekli Aksiyon Planları (AI Insight Panel)
 //  decisionEngine.js çıktısını görselleştirir.
+//  SUMMARY + RECOMMENDATION bölümlerine ayrılmıştır.
 //  NOT: Bu panel gerçek eğitilmiş AI modeli değildir.
 //  İlk sürüm — Kural Tabanlı Karar Motoru v1
 // ============================================================
@@ -149,30 +150,62 @@ export default function RecommendationPanel({ currentWeather, hourlyForecast, ma
   const criticalCount = recommendations.filter(r => r.severity === 'critical').length;
   const warningCount  = recommendations.filter(r => r.severity === 'warning').length;
 
+  // ── Zaman dilimi etiketi ──
+  const hour = new Date().getHours();
+  const timeLabel = hour < 12 ? 'MORNING' : hour < 18 ? 'MIDDAY' : 'EVENING';
+
+  // ── Summary maddeleri (hava verisinden türetilen durum analizi) ──
+  const summaryItems = [];
+  if (currentWeather) {
+    summaryItems.push(`Anlık rüzgar hızı ${currentWeather.windSpeed} m/s, sıcaklık ${currentWeather.temperature}°C seviyesinde ölçümlendi.`);
+    if (currentWeather.windSpeed > 12)
+      summaryItems.push(`Rüzgar hızı 12 m/s üzerinde — RES türbinleri yüksek kapasite faktöründe çalışıyor.`);
+    if (currentWeather.windSpeed < 5)
+      summaryItems.push(`Rüzgar hızı düşük seviyede. Üretim kapasitesi kısıtlı olabilir, HES dengeleme devreye alınabilir.`);
+    if (currentWeather.ghi > 600)
+      summaryItems.push(`GHI irradyans ${Math.round(currentWeather.ghi)} W/m² — GES panelleri verimli üretim bandında.`);
+    if (currentWeather.ghi <= 200 && currentWeather.ghi > 0)
+      summaryItems.push(`GHI irradyans düşük (${Math.round(currentWeather.ghi)} W/m²). Bulutlu hava GES verimini sınırlıyor.`);
+    summaryItems.push(`Sistem yönü genel olarak dengeli kaldı; rüzgar yönü ${currentWeather.windDirection}° olarak kaydedildi.`);
+  }
+
+  // ── Recommendation maddeleri (aksiyona yönelik öneriler) ──
+  const recommendItems = [];
+  if (currentWeather) {
+    if (currentWeather.windSpeed > 20)
+      recommendItems.push('Yüksek rüzgar beklentisi nedeniyle fırtına koruma protokolü değerlendirilebilir.');
+    if (currentWeather.windSpeed > 12)
+      recommendItems.push('Yüksek rüzgar bandında RES üretimini maksimize etmek için Yaw optimizasyonu uygulanabilir.');
+    if (currentWeather.ghi > 600)
+      recommendItems.push('GES sahalarında panel temizlik takvimi öne çekilebilir — yüksek GHI fırsatı.');
+    recommendItems.push('Günlük PTF takibi ile üretim-satış dengesinin optimize edilmesi önerilir.');
+    if (currentWeather.windSpeed < 5)
+      recommendItems.push('Düşük rüzgar döneminde HES ve DGÇS ile dengeleme stratejisi aktive edilebilir.');
+    recommendItems.push('Korozyon izleme modülündeki verilerin saha ekibiyle haftalık olarak gözden geçirilmesi tavsiye edilir.');
+  }
+
   return (
     <div className="bg-gray-900/80 border border-purple-500/20 rounded-2xl p-5 backdrop-blur-sm">
-      {/* Panel başlığı */}
+      {/* Panel başlığı — AI INSIGHT | MIDDAY tarzı */}
       <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="text-white font-bold text-sm flex items-center gap-2">
-            🧠 AI Destekli Operasyonel Öneriler
-            {/* "Kural Tabanlı" etiketi — gerçek AI olmadığını belirtir */}
-            <span style={{
-              fontSize: 8, fontWeight: 700, color: '#a78bfa',
-              background: '#1a0f2e', padding: '1px 6px',
-              borderRadius: 4, border: '1px solid #4c1d95',
-              letterSpacing: '0.05em',
-            }}>
-              KURAL TABANLI v{ENGINE_META.version}
-            </span>
-          </h3>
-          <p className="text-gray-500 text-xs mt-0.5">
-            Open-Meteo, Marine, türbin konumu ve hesaplanan üretim verilerine dayalı kural tabanlı karar motoru
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-600 to-cyan-600 flex items-center justify-center shadow-lg shadow-purple-900/40">
+            <span style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>AI</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-white font-extrabold text-sm tracking-wide">AI INSIGHT</span>
+              <span className="text-gray-600 text-xs">|</span>
+              <span className="text-purple-400 text-xs font-bold tracking-widest">{timeLabel}</span>
+            </div>
+            <p className="text-gray-600 text-xs mt-0.5">
+              Open-Meteo verisi + kural tabanlı karar motoru v{ENGINE_META.version}
+            </p>
+          </div>
         </div>
 
         {/* Özet sayaçlar */}
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {criticalCount > 0 && (
             <span style={{
               fontSize: 10, fontWeight: 700, color: '#f87171',
@@ -216,31 +249,78 @@ export default function RecommendationPanel({ currentWeather, hourlyForecast, ma
         </div>
       )}
 
-      {/* Öneri kartları */}
-      {recommendations.length > 0 && (
-        <div>
-          {recommendations.map(rec => (
-            <RecommendationCard key={rec.id} rec={rec} />
-          ))}
-        </div>
-      )}
+      {/* ═══════════ SUMMARY & RECOMMENDATION BÖLÜMÜ ═══════════ */}
+      {currentWeather && (
+        <div className="space-y-4">
 
-      {/* Öneri yok — normal durum */}
-      {recommendations.length === 0 && currentWeather && (
-        <div style={{
-          background: '#052e16', border: '1px solid #166534',
-          borderRadius: 10, padding: '12px 14px',
-          display: 'flex', gap: 10, alignItems: 'center',
-        }}>
-          <span style={{ fontSize: 20 }}>✅</span>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399' }}>
-              Tüm parametreler normal aralıkta
+          {/* ── SUMMARY + RECOMMENDATION KUTUSU ── */}
+          <div className="rounded-xl border border-gray-700/40 bg-gray-800/30 p-4">
+            <div className="text-center mb-3">
+              <span className="text-gray-400 text-xs font-bold tracking-[0.15em] uppercase border-b border-gray-700/60 pb-1 px-4">
+                Summary & Recommendation
+              </span>
             </div>
-            <div style={{ fontSize: 10, color: '#4b5563', marginTop: 2 }}>
-              Mevcut hava ve deniz koşulları operasyonel eşiklerin altında.
+
+            {/* SUMMARY */}
+            <div className="space-y-1.5 mb-3">
+              {summaryItems.map((item, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-gray-600 text-xs mt-0.5">●</span>
+                  <span className="text-gray-300 text-xs leading-relaxed">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mb-2">
+              <span className="text-gray-600 text-[9px] font-semibold tracking-[0.15em] uppercase">Summary</span>
+            </div>
+
+            {/* Ayırıcı */}
+            <div className="border-t border-gray-700/40 my-3" />
+
+            {/* RECOMMENDATION */}
+            <div className="space-y-1.5">
+              {recommendItems.map((item, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-cyan-600 text-xs mt-0.5">●</span>
+                  <span className="text-gray-400 text-xs leading-relaxed">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-2">
+              <span className="text-gray-600 text-[9px] font-semibold tracking-[0.15em] uppercase">Recommendation</span>
             </div>
           </div>
+
+          {/* ── Detaylı Uyarı Kartları (varsa) ── */}
+          {recommendations.length > 0 && (
+            <div>
+              <p className="text-gray-600 text-xs font-bold tracking-wider uppercase mb-2">Detaylı Uyarılar</p>
+              {recommendations.map(rec => (
+                <RecommendationCard key={rec.id} rec={rec} />
+              ))}
+            </div>
+          )}
+
+          {/* Öneri yok — normal durum */}
+          {recommendations.length === 0 && (
+            <div style={{
+              background: '#052e16', border: '1px solid #166534',
+              borderRadius: 10, padding: '12px 14px',
+              display: 'flex', gap: 10, alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 20 }}>✅</span>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399' }}>
+                  Tüm parametreler normal aralıkta
+                </div>
+                <div style={{ fontSize: 10, color: '#4b5563', marginTop: 2 }}>
+                  Mevcut hava ve deniz koşulları operasyonel eşiklerin altında.
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -53,6 +53,11 @@ const ENERJISA_PLANTS = [
   { id: 'bat-01', name: 'Bandırma BESS',      type: 'Batarya',  lat: 40.3250, lon: 27.9950, mw: 2, turbines: null, il: 'Balıkesir', status: 'active', desc: 'Türkiye’nin bakanlık kabulü yapılan ilk şebeke ölçekli Batarya Enerji Depolama Sistemi (BESS). Ticari şebekede aktif olarak dengeleme yapmaktadır.' },
   { id: 'bat-02', name: 'Polatlı Dep. GES-1', type: 'Batarya',  lat: 39.5800, lon: 31.9500, mw: 25, turbines: null, il: 'Ankara', status: 'planned', desc: 'EPDK’dan süresi uzatılmış, 2027 sonu hedeflenen, Ankara Polatlı’daki 25 MW kapasiteli güneş ve batarya entegre sistem yatırımımız.' },
   { id: 'bat-03', name: 'Mihalıççık Seki GES',type: 'Batarya',  lat: 39.8700, lon: 31.4900, mw: 25, turbines: null, il: 'Eskişehir', status: 'planned', desc: 'Lokasyon optimizasyonuyla Eskişehir’e taşınan, öz kaynaklarla finanse edilen ÇED aşamasındaki 25 MW GES + Batarya dev depolama yatırımı.' },
+
+  // ── POTANSİYEL SAHALAR (Temsili Konum) ──────
+  { id: 'pot-01', name: 'Malkara GES+Batarya', type: 'Batarya', lat: 40.8900, lon: 26.9000, mw: 0, turbines: 0, il: 'Tekirdağ',  status: 'planned', desc: 'Trakya bölgesinde yüksek potansiyeli nedeniyle değerlendirilen potansiyel GES + Batarya yatırım sahası.' },
+  { id: 'pot-02', name: 'Samsun GES+Batarya',  type: 'Batarya', lat: 41.2800, lon: 36.3400, mw: 0, turbines: 0, il: 'Samsun',    status: 'planned', desc: 'Karadeniz kıyı şeridinde enerji potansiyeli değerlendirilmek üzere eklenen Batarya saha.' },
+  { id: 'pot-03', name: 'İpsala GES+Batarya',  type: 'Batarya', lat: 40.9200, lon: 26.3800, mw: 0, turbines: 0, il: 'Edirne',    status: 'planned', desc: 'Meriç havzasında, Yunanistan sınırı yakınında faydalanılması planlanan potansiyel GES + Batarya saha.' },
 ];
 
 export default ENERJISA_PLANTS;

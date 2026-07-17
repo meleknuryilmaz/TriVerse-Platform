@@ -99,7 +99,7 @@ export function ProfitLossChartWidget() {
 
   // ── Tooltip Formatter ─────────────────────────────────────────
   const tooltipFormatter = (value, name) => {
-    if (name === 'Market Price (PTF)') {
+    if (name.includes('PTF')) {
       return [fmt(value) + ' TL/MWh', name];
     }
     return ['₺' + fmt(value), name];
@@ -162,7 +162,7 @@ export function ProfitLossChartWidget() {
             <YAxis
               yAxisId="left"
               stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false}
-              tickFormatter={(v) => `${v / 1000}k`}
+              tickFormatter={(v) => `${v / 1000}k TL`}
               label={{ value: 'Tutar (TL)', angle: -90, position: 'insideLeft', offset: 12, style: { fill: '#6b7280', fontSize: 10 } }}
             />
             {/* Sağ Y ekseni — PTF (TL/MWh) */}
@@ -181,22 +181,22 @@ export function ProfitLossChartWidget() {
             <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
 
             {/* Revenue Forecast — AI senaryo gelir tahmini */}
-            <Bar yAxisId="left" dataKey="AI_Forecast" name="Revenue Forecast"
+            <Bar yAxisId="left" dataKey="AI_Forecast" name="AI Gelir Tahmini (Revenue Forecast)"
               fill="#38bdf8" radius={[4, 4, 0, 0]} barSize={15} />
 
             {/* Baseline Revenue — Operasyonel referans (OB) geliri */}
-            <Bar yAxisId="left" dataKey="OB_Forecast" name="Baseline Revenue"
+            <Bar yAxisId="left" dataKey="OB_Forecast" name="Bütçe Marjı (Budget Margin)"
               fill="#a3e635" radius={[4, 4, 0, 0]} barSize={15} />
 
             {/* AI Operational Score — Operasyonel karar destek göstergesi */}
             <Line yAxisId="left" type="monotone" dataKey="NetAI"
-              name="AI Operational Score"
+              name="AI Karar Destek Skoru"
               stroke="#f43f5e" strokeWidth={3}
               dot={{ r: 4, fill: '#f43f5e', strokeWidth: 0 }} />
 
             {/* Market Price (PTF) — Piyasa Takas Fiyatı, sağ eksen */}
             <Line yAxisId="right" type="step" dataKey="PTF"
-              name="Market Price (PTF)"
+              name="Piyasa Takas Fiyatı (PTF)"
               stroke="#eab308" strokeWidth={2} strokeDasharray="5 5" dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
