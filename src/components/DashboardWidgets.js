@@ -16,36 +16,195 @@ const profitLossData = [
 ];
 
 export function ProfitLossChartWidget() {
+  // ════════════════════════════════════════════════════════════════
+  //  NetAI SERİSİ — UI İSİM KARARI
+  //  NetAI, finansal "Profit" veya "Trade Position" değildir.
+  //  Kâr, brüt geliri aşamaz (Paz: NetAI 18k > AI_Forecast 10k).
+  //  Enerji ticareti optimizasyonu iddiası da doğru değil.
+  //
+  //  NetAI = AI karar motorunun hava koşulları, piyasa fiyatı
+  //  ve operasyonel senaryoyu birlikte değerlendirdiği
+  //  OPERASYONEL KARAR DESTEK SKORU → "AI Operational Score"
+  //
+  //  Diğer seriler:
+  //   AI_Forecast → Revenue Forecast  ✅
+  //   OB_Forecast → Baseline Revenue  ✅
+  //   PTF         → Market Price (PTF) ✅
+  // ════════════════════════════════════════════════════════════════
+
+  // ── AI Insight: Mevcut veriden türetilen bulgular ─────────────
+  const dayNames = {
+    Mon: 'Pazartesi', Tue: 'Salı', Wed: 'Çarşamba',
+    Thu: 'Perşembe',  Fri: 'Cuma', Sat: 'Cumartesi', Sun: 'Pazar',
+  };
+  const dayNamesShort = {
+    Mon: 'Pzt', Tue: 'Sal', Wed: 'Çar',
+    Thu: 'Per', Fri: 'Cum', Sat: 'Cmt', Sun: 'Paz',
+  };
+
+  // ── 4 Bulgulu Hesaplama (profitLossData'dan türetildi) ──
+  // En yüksek Revenue Forecast günü
+  const maxRevDay   = profitLossData.reduce((a, b) => a.AI_Forecast > b.AI_Forecast ? a : b);
+  // En yüksek PTF günü
+  const maxPTFDay   = profitLossData.reduce((a, b) => a.PTF > b.PTF ? a : b);
+  // En düşük Revenue Forecast günü
+  const minRevDay   = profitLossData.reduce((a, b) => a.AI_Forecast < b.AI_Forecast ? a : b);
+  // En düşük OB_Forecast günü (→ bakım penceresi)
+  const minOBDay    = profitLossData.reduce((a, b) => a.OB_Forecast < b.OB_Forecast ? a : b);
+  // En yüksek NetAI (AI Operational Score) günü
+  const maxNetAIDay = profitLossData.reduce((a, b) => a.NetAI > b.NetAI ? a : b);
+  // Gelir + PTF çakışması kontrolü
+  const revPtfSameDay = maxRevDay.day === maxPTFDay.day;
+
+  const fmt = (v) => new Intl.NumberFormat('tr-TR').format(v);
+
+  // ── Madde listesi — max 4, her biri {icon, color, text} ──
+  // Aynı gün iki farklı bulguya uyuyorsa (orn. maxRev+maxPTF) tek maddeye birleştirilir.
+  // MinRev ve maxNetAI aynı gunde ise farklı niteliği nedeniyle ayrı gösterilir.
+  const bullets = [
+    // Madde 1: En yüksek gelir fırsatı (PTF çakışıyorsa birleştirilmiş)
+    {
+      icon: '📈',
+      color: '#38bdf8',
+      text: revPtfSameDay
+        ? `${dayNames[maxRevDay.day]} günü beklenen gelir ₺${fmt(maxRevDay.AI_Forecast)} ve PTF ${fmt(maxRevDay.PTF)} TL/MWh ile haftanın en yüksek seviyesinde. Üretim kapasitesinin korunması önerilir.`
+        : `${dayNames[maxRevDay.day]} günü beklenen gelir ₺${fmt(maxRevDay.AI_Forecast)} ile haftanın en yüksek seviyesinde. Üretim kapasitesinin korunması önerilir.`,
+    },
+    // Madde 2: Bakım penceresi (en düşük OB günü)
+    {
+      icon: '🔧',
+      color: '#f59e0b',
+      text: minOBDay.OB_Forecast === 0
+        ? `${dayNames[minOBDay.day]} günü operasyonel baseline sıfır. Planlı bakım için uygun zaman penceresi oluşuyor.`
+        : `${dayNames[minOBDay.day]} günü operasyonel yük haftanın en düşük seviyesinde (₺${fmt(minOBDay.OB_Forecast)}). Bakım planlaması değerlendirilebilir.`,
+    },
+    // Madde 3: En düşük gelir beklentisi
+    {
+      icon: '📉',
+      color: '#f87171',
+      text: `${dayNames[minRevDay.day]} günü gelir beklentisi ₺${fmt(minRevDay.AI_Forecast)} ile haftanın en düşük seviyesinde. Düşük öncelikli operasyonlar bu güne kaydırılabilir.`,
+    },
+    // Madde 4: En yüksek AI Operational Score
+    {
+      icon: '🤖',
+      color: '#a78bfa',
+      text: `${dayNames[maxNetAIDay.day]} günü AI Operational Score haftanın en yüksek seviyesinde. Karar destek çıktılarının yakından izlenmesi önerilir.`,
+    },
+  ];
+
+  // Sabit bilgi satırı — madde olarak sayılmaz, küçük alt metin olarak gösterilir
+  const infoLine = 'AI Operational Score; hava koşulları, piyasa fiyatı ve operasyonel senaryoyu değerlendirerek karar destek amacıyla oluşturulur.';
+
+
+
+  // ── Tooltip Formatter ─────────────────────────────────────────
+  const tooltipFormatter = (value, name) => {
+    if (name === 'Market Price (PTF)') {
+      return [fmt(value) + ' TL/MWh', name];
+    }
+    return ['₺' + fmt(value), name];
+  };
+
+  const tooltipLabelFormatter = (label) => dayNames[label] || label;
+
   return (
     <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-sm h-full flex flex-col">
-      <div className="flex justify-between items-start mb-4">
+
+      {/* ── Başlık ── */}
+      <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="text-white font-bold text-sm">📈 Kâr/Zarar & Piyasa Takas Fiyatı (PTF)</h3>
-          <p className="text-gray-500 text-xs">AI vs OB Tahminleri (TL) ve PTF (TL/MWh)</p>
+          <h3 className="text-white font-bold text-sm">
+            📈 7 Günlük Finansal Performans ve Piyasa Projeksiyonu
+          </h3>
+          <p className="text-gray-500 text-xs">
+            Gelir tahmini, operasyonel skor, referans senaryo ve piyasa fiyatı karşılaştırması
+          </p>
         </div>
       </div>
+
+      {/* ── AI Insight Kartı ── */}
+      <div className="mb-4 rounded-xl border border-cyan-700/30 bg-cyan-950/20 p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-cyan-400 text-xs font-bold tracking-wide uppercase">💡 AI Insight</span>
+          <span className="text-gray-600 text-xs">— grafik verisinden türetildi</span>
+        </div>
+        <ul className="space-y-1.5">
+          {bullets.map((b, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs leading-snug">
+              <span className="flex-shrink-0 mt-0.5">{b.icon}</span>
+              <span className="text-gray-400">
+                <span style={{ color: b.color, fontWeight: 600 }}>
+                  {b.text.split(' ').slice(0, 1)[0]}{' '}
+                </span>
+                {b.text.split(' ').slice(1).join(' ')}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {/* Bilgi satırı — madde olarak sayılmaz */}
+        <div className="mt-2 pt-2 border-t border-cyan-900/40 flex items-start gap-1.5">
+          <span className="text-gray-700 text-xs mt-0.5">ℹ️</span>
+          <p className="text-gray-700 text-xs italic leading-snug">{infoLine}</p>
+        </div>
+      </div>
+
+      {/* ── Grafik ── */}
       <div className="flex-1 min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={profitLossData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-            <XAxis dataKey="day" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis yAxisId="left" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
-            <YAxis yAxisId="right" orientation="right" stroke="#eab308" fontSize={11} tickLine={false} axisLine={false} />
+            <XAxis
+              dataKey="day"
+              stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false}
+              tickFormatter={(v) => dayNamesShort[v] || v}
+            />
+            {/* Sol Y ekseni — Tutar (TL) */}
+            <YAxis
+              yAxisId="left"
+              stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false}
+              tickFormatter={(v) => `${v / 1000}k`}
+              label={{ value: 'Tutar (TL)', angle: -90, position: 'insideLeft', offset: 12, style: { fill: '#6b7280', fontSize: 10 } }}
+            />
+            {/* Sağ Y ekseni — PTF (TL/MWh) */}
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              stroke="#eab308" fontSize={11} tickLine={false} axisLine={false}
+              label={{ value: 'PTF (TL/MWh)', angle: 90, position: 'insideRight', offset: 16, style: { fill: '#eab308', fontSize: 10 } }}
+            />
             <Tooltip
               contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
               itemStyle={{ color: '#e5e7eb' }}
+              formatter={tooltipFormatter}
+              labelFormatter={tooltipLabelFormatter}
             />
             <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-            <Bar yAxisId="left" dataKey="AI_Forecast" name="AI Forecast" fill="#38bdf8" radius={[4, 4, 0, 0]} barSize={15} />
-            <Bar yAxisId="left" dataKey="OB_Forecast" name="OB Forecast" fill="#a3e635" radius={[4, 4, 0, 0]} barSize={15} />
-            <Line yAxisId="left" type="monotone" dataKey="NetAI" name="NetAI Forecast" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#f43f5e', strokeWidth: 0 }} />
-            <Line yAxisId="right" type="step" dataKey="PTF" name="PTF (TL/MWh)" stroke="#eab308" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+
+            {/* Revenue Forecast — AI senaryo gelir tahmini */}
+            <Bar yAxisId="left" dataKey="AI_Forecast" name="Revenue Forecast"
+              fill="#38bdf8" radius={[4, 4, 0, 0]} barSize={15} />
+
+            {/* Baseline Revenue — Operasyonel referans (OB) geliri */}
+            <Bar yAxisId="left" dataKey="OB_Forecast" name="Baseline Revenue"
+              fill="#a3e635" radius={[4, 4, 0, 0]} barSize={15} />
+
+            {/* AI Operational Score — Operasyonel karar destek göstergesi */}
+            <Line yAxisId="left" type="monotone" dataKey="NetAI"
+              name="AI Operational Score"
+              stroke="#f43f5e" strokeWidth={3}
+              dot={{ r: 4, fill: '#f43f5e', strokeWidth: 0 }} />
+
+            {/* Market Price (PTF) — Piyasa Takas Fiyatı, sağ eksen */}
+            <Line yAxisId="right" type="step" dataKey="PTF"
+              name="Market Price (PTF)"
+              stroke="#eab308" strokeWidth={2} strokeDasharray="5 5" dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
 }
+
 
 // ─── Kritik Bakım Takvimi & Sıklığı ────────────────────────────
 export function MaintenanceCalendarWidget() {
