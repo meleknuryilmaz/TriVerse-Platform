@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/TriVerse-Platform/static/css/main.dd162eee.css",
+    "main.js": "/TriVerse-Platform/static/js/main.6ff5b37e.js",
+    "static/js/453.18ab843e.chunk.js": "/TriVerse-Platform/static/js/453.18ab843e.chunk.js",
+    "index.html": "/TriVerse-Platform/index.html",
+    "main.dd162eee.css.map": "/TriVerse-Platform/static/css/main.dd162eee.css.map",
+    "main.6ff5b37e.js.map": "/TriVerse-Platform/static/js/main.6ff5b37e.js.map",
+    "453.18ab843e.chunk.js.map": "/TriVerse-Platform/static/js/453.18ab843e.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.dd162eee.css",
+    "static/js/main.6ff5b37e.js"
+  ]
+}
