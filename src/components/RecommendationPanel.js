@@ -185,20 +185,20 @@ export default function RecommendationPanel({ currentWeather, hourlyForecast, ma
   }
 
   return (
-    <div className="bg-gray-900/80 border border-purple-500/20 rounded-2xl p-5 backdrop-blur-sm">
-      {/* Panel başlığı — AI INSIGHT | MIDDAY tarzı */}
+    <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-5 backdrop-blur-sm shadow-xl shadow-black/20">
+      {/* Panel başlığı */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-600 to-cyan-600 flex items-center justify-center shadow-lg shadow-purple-900/40">
-            <span style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>AI</span>
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-900/20">
+            <span style={{ fontSize: 14, fontWeight: 'bold', color: '#fff' }}>AI</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-white font-extrabold text-sm tracking-wide">AI INSIGHT</span>
-              <span className="text-gray-600 text-xs">|</span>
-              <span className="text-purple-400 text-xs font-bold tracking-widest">{timeLabel}</span>
+              <span className="text-slate-100 font-bold text-sm tracking-wide">AI DECISION ENGINE</span>
+              <span className="text-slate-600 text-xs">|</span>
+              <span className="text-indigo-400 text-xs font-medium tracking-wider">{timeLabel}</span>
             </div>
-            <p className="text-gray-600 text-xs mt-0.5">
+            <p className="text-slate-400/80 text-[11px] mt-0.5">
               Open-Meteo verisi + kural tabanlı karar motoru v{ENGINE_META.version}
             </p>
           </div>
@@ -254,42 +254,40 @@ export default function RecommendationPanel({ currentWeather, hourlyForecast, ma
         <div className="space-y-4">
 
           {/* ── SUMMARY + RECOMMENDATION KUTUSU ── */}
-          <div className="rounded-xl border border-gray-700/40 bg-gray-800/30 p-4">
-            <div className="text-center mb-3">
-              <span className="text-gray-400 text-xs font-bold tracking-[0.15em] uppercase border-b border-gray-700/60 pb-1 px-4">
-                Summary & Recommendation
-              </span>
-            </div>
-
+          <div className="rounded-xl border border-slate-700/50 bg-slate-800/40 p-5 shadow-inner">
+            
             {/* SUMMARY */}
-            <div className="space-y-1.5 mb-3">
-              {summaryItems.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-gray-600 text-xs mt-0.5">●</span>
-                  <span className="text-gray-300 text-xs leading-relaxed">{item}</span>
-                </div>
-              ))}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3 border-b border-slate-700/60 pb-1.5">
+                <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">
+                  Mevcut Durum Analizi
+                </span>
+              </div>
+              <div className="space-y-3">
+                {summaryItems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="text-slate-500 text-[10px] mt-1.5">◆</span>
+                    <span className="text-slate-300 text-[13px] leading-relaxed font-medium">{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <div className="text-center mb-2">
-              <span className="text-gray-600 text-[9px] font-semibold tracking-[0.15em] uppercase">Summary</span>
-            </div>
-
-            {/* Ayırıcı */}
-            <div className="border-t border-gray-700/40 my-3" />
 
             {/* RECOMMENDATION */}
-            <div className="space-y-1.5">
-              {recommendItems.map((item, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-cyan-600 text-xs mt-0.5">●</span>
-                  <span className="text-gray-400 text-xs leading-relaxed">{item}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center mt-2">
-              <span className="text-gray-600 text-[9px] font-semibold tracking-[0.15em] uppercase">Recommendation</span>
+            <div>
+              <div className="flex items-center gap-2 mb-3 border-b border-indigo-900/60 pb-1.5">
+                <span className="text-indigo-400 text-xs font-bold tracking-widest uppercase">
+                  Sistem Önerileri
+                </span>
+              </div>
+              <div className="space-y-3">
+                {recommendItems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="text-indigo-500 text-[10px] mt-1.5">▶</span>
+                    <span className="text-indigo-100 text-[13px] leading-relaxed font-medium">{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

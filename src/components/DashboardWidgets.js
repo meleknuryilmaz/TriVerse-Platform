@@ -122,18 +122,20 @@ export function ProfitLossChartWidget() {
         </div>
       </div>
 
-      {/* ── AI Insight Kartı ── */}
-      <div className="mb-4 rounded-xl border border-cyan-700/30 bg-cyan-950/20 p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-cyan-400 text-xs font-bold tracking-wide uppercase">💡 AI Insight</span>
-          <span className="text-gray-600 text-xs">— grafik verisinden türetildi</span>
+      {/* ── AI DECISION ENGINE Kartı ── */}
+      <div className="mb-4 rounded-xl border border-slate-700/50 bg-slate-800/40 p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3 border-b border-slate-700/50 pb-2">
+          <span className="text-indigo-400 text-[11px] font-bold tracking-wider uppercase flex items-center gap-1.5">
+            <span className="text-sm">💡</span> AI DECISION ENGINE
+          </span>
+          <span className="text-slate-500 text-[10px]">— grafik verisinden türetildi</span>
         </div>
-        <ul className="space-y-1.5">
+        <ul className="space-y-2">
           {bullets.map((b, i) => (
             <li key={i} className="flex items-start gap-2 text-xs leading-snug">
-              <span className="flex-shrink-0 mt-0.5">{b.icon}</span>
-              <span className="text-gray-400">
-                <span style={{ color: b.color, fontWeight: 600 }}>
+              <span className="flex-shrink-0 mt-0.5 text-sm">{b.icon}</span>
+              <span className="text-slate-300 font-medium tracking-wide">
+                <span style={{ color: b.color, fontWeight: 700 }}>
                   {b.text.split(' ').slice(0, 1)[0]}{' '}
                 </span>
                 {b.text.split(' ').slice(1).join(' ')}

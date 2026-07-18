@@ -1045,10 +1045,10 @@ function SurdTab({ perms }) {
   }
 
   const species = [
-    { name: 'Şahin (Falco tinnunculus)',  count: 3,  risk: 'Düşük',        badge: 'text-green-300 bg-green-900/40 border-green-700/30'  },
-    { name: 'Kızıl Şahin (Buteo buteo)', count: 1,  risk: 'Orta',         badge: 'text-yellow-300 bg-yellow-900/40 border-yellow-700/30' },
-    { name: 'Kerkenez',                   count: 7,  risk: 'Düşük',        badge: 'text-green-300 bg-green-900/40 border-green-700/30'   },
-    { name: 'Büyük Akbaba',              count: 0,  risk: 'Kritik İzlem', badge: 'text-red-300 bg-red-900/40 border-red-700/30'          },
+    { name: 'Şahin',        count: 3,  risk: 'İzleme Önceliği: Düşük',  badge: 'text-green-300 bg-green-900/40 border-green-700/30' },
+    { name: 'Kızıl Şahin',  count: 1,  risk: 'İzleme Önceliği: Orta',   badge: 'text-yellow-300 bg-yellow-900/40 border-yellow-700/30' },
+    { name: 'Kerkenez',     count: 7,  risk: 'İzleme Önceliği: Düşük',  badge: 'text-green-300 bg-green-900/40 border-green-700/30' },
+    { name: 'Büyük Akbaba', count: 0,  risk: 'İzleme Önceliği: Kritik', badge: 'text-red-300 bg-red-900/40 border-red-700/30' },
   ];
 
   return (
@@ -1120,18 +1120,30 @@ function SurdTab({ perms }) {
         <EcoMonitorWidget />
 
         <WidgetCard
-          title="🌍 Biyoçeşitlilik & Habitat İzleme"
-          subtitle="Termal Kamera + Drone Tarama — Sektör A-B-C"
+          title="🌍 Doğal Yaşam İzleme"
+          subtitle="Tesis Çevresi Termal Tarama ve Çevresel Raporlama"
           borderClass="border-green-500/20"
         >
+          {/* Info Text */}
+          <div className="mb-4 px-3 py-2 bg-gray-800/60 border border-gray-700/50 rounded-lg flex items-center gap-3">
+            <span className="text-xl">🦉</span>
+            <p className="text-gray-300 text-xs leading-relaxed font-medium">
+              Tesis çevresindeki vahşi yaşam, termal drone'lar ile düzenli taranır ve uluslararası çevre standartlarına göre kayıt altına alınır.
+            </p>
+          </div>
+
+          {/* Species List */}
           <div className="space-y-2 flex-1">
+            <p className="text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-2">Sahada Tespit Edilen Türler</p>
             {species.map(s => (
-              <div key={s.name} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-3 py-2.5">
-                <div>
-                  <p className="text-white text-xs font-semibold">{s.name}</p>
-                  <p className="text-gray-500 text-xs">Gözlem: {s.count} birey</p>
+              <div key={s.name} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-3 py-2 border border-gray-700/30">
+                <div className="flex items-center gap-3">
+                  <p className="text-white text-sm font-bold w-24">{s.name}</p>
+                  <p className="text-gray-400 text-xs px-2 py-0.5 bg-gray-900/50 rounded-md border border-gray-700/50">
+                    <span className="text-white font-bold">{s.count}</span> tespit
+                  </p>
                 </div>
-                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${s.badge}`}>
+                <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${s.badge}`}>
                   {s.risk}
                 </span>
               </div>
@@ -1139,30 +1151,38 @@ function SurdTab({ perms }) {
           </div>
 
           {/* Drone scan log */}
-          <div className="mt-4 p-3 bg-blue-950/30 border border-blue-700/30 rounded-xl">
-            <p className="text-blue-300 text-xs font-semibold">
-              🛰️ Son Drone Tarama:{' '}
-              <span className="text-white">05.07.2026 — 14:23</span>
-            </p>
-            <p className="text-gray-600 text-xs mt-0.5">
-              Güzergah: Sektör A-B-C / 12 km² / 4K termal kamera / NDVI analiz
-            </p>
+          <div className="mt-5 p-3 bg-blue-950/20 border border-blue-900/30 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-blue-900/40 flex items-center justify-center border border-blue-700/50">
+                🛰️
+              </div>
+              <div>
+                <p className="text-blue-300 text-xs font-bold">Son Drone Taraması</p>
+                <p className="text-gray-500 text-[10px] mt-0.5">Sektör A-B-C • Termal Kamera Aktif</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-white text-xs font-bold bg-blue-900/40 px-2 py-1 rounded">05.07.2026</p>
+            </div>
           </div>
 
           {/* Habitat health */}
-          <div className="mt-3 space-y-2">
+          <div className="mt-4 space-y-3">
             {[
-              { label: 'Habitat Sağlık Skoru', val: 78, color: 'from-green-600 to-emerald-500', textColor: 'text-green-400' },
-              { label: 'Biyoçeşitlilik İndeksi (Shannon)', val: 63, color: 'from-blue-600 to-cyan-500', textColor: 'text-cyan-400' },
+              { label: 'Habitat Sağlık Skoru', val: 78, evaluation: '⭐⭐⭐⭐ (İyi)', color: 'from-green-600 to-emerald-500', textColor: 'text-green-400' },
+              { label: 'Biyoçeşitlilik İndeksi', val: 63, evaluation: '⭐⭐⭐ (Orta)', color: 'from-blue-600 to-cyan-500', textColor: 'text-cyan-400' },
             ].map(m => (
               <div key={m.label}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-gray-500 text-xs">{m.label}</span>
-                  <span className={`text-xs font-bold ${m.textColor}`}>{m.val}/100</span>
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-gray-400 text-xs">{m.label}</span>
+                  <div className="text-right">
+                    <span className={`text-[10px] mr-2 ${m.textColor} opacity-80`}>{m.evaluation}</span>
+                    <span className={`text-xs font-bold ${m.textColor}`}>{m.val}/100</span>
+                  </div>
                 </div>
-                <div className="bg-gray-700 rounded-full h-1.5">
+                <div className="bg-gray-700/50 rounded-full h-1.5 border border-gray-600/30 overflow-hidden">
                   <div
-                    className={`bg-gradient-to-r ${m.color} h-1.5 rounded-full transition-all`}
+                    className={`bg-gradient-to-r ${m.color} h-full transition-all`}
                     style={{ width: `${m.val}%` }}
                   />
                 </div>
@@ -1170,9 +1190,20 @@ function SurdTab({ perms }) {
             ))}
           </div>
 
-          <div className="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-700/40">
-            <PulseBadge variant="green">IBA Uyumlu</PulseBadge>
-            <PulseBadge variant="cyan">EBRD PR6</PulseBadge>
+          {/* Compliance Indicators */}
+          <div className="flex gap-2 flex-wrap mt-4 pt-3 border-t border-gray-700/40">
+            <div className="group relative">
+              <PulseBadge variant="green">IBA Uyumlu</PulseBadge>
+              <div className="absolute bottom-full left-0 mb-1 w-56 p-2 bg-gray-900 border border-gray-600 text-gray-300 text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                Önemli Kuş Alanı (Important Bird Area) standartlarına uygunluk.
+              </div>
+            </div>
+            <div className="group relative">
+              <PulseBadge variant="cyan">EBRD PR6</PulseBadge>
+              <div className="absolute bottom-full left-0 mb-1 w-56 p-2 bg-gray-900 border border-gray-600 text-gray-300 text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                Avrupa İmar ve Kalkınma Bankası - Biyoçeşitliliğin Korunması kriteri.
+              </div>
+            </div>
           </div>
         </WidgetCard>
       </div>
