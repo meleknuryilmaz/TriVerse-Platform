@@ -87,10 +87,12 @@ export default function ChatbotWidget() {
   const messagesEndRef                  = useRef(null);
   const inputRef                        = useRef(null);
 
-  // Otomatik scroll
+  // Otomatik scroll (Sadece chat açıksa ve en yakın bloka kaydıracak şekilde)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+    if (isOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [messages, isTyping, isOpen]);
 
   // İlk açılışta karşılama mesajı
   useEffect(() => {

@@ -1412,6 +1412,11 @@ export default function App() {
     }
   }, [role]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sayfa değiştiğinde ve ilk açılışta ekranı en üste kaydır
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [activeTab]);
+
   const tabLabel = TABS.find(t => t.key === activeTab)?.label ?? '';
 
   const renderContent = () => {
